@@ -51,7 +51,7 @@ Note that for `hw3_eval.py` to work, your predicted `.csv` files should have the
 ### Late Submission Policy
 You have a five-day delay quota for the whole semester. Once you have exceeded your quota, the credit of any late submission will be deducted by 30% each day.
 
-Note that while it is possible to continue your work in this repository after the deadline, **we will by default grade your last commit before the deadline** specified above. If you wish to use your quota or submit an earlier version of your repository, please contact the TAs and let them know which commit to grade.
+Note that while it is possible to continue your work in this repository after the deadline, **we will by default grade your last commit before the deadline** specified above. If you wish to use your quota or submit an earlier version of your repository, please contact the TAs and let them know which commit to grade. For more information, please check out [this post](https://www.facebook.com/notes/dlcv-spring-2019/lateearly-homework-submission/326632628047121/).
 
 ### Academic Honesty
 -   Taking any unfair advantages over other class members (or letting anyone do so) is strictly prohibited. Violating university policy would result in an **F** grade for this course (**NOT** negotiable).    
@@ -78,8 +78,11 @@ We will run your code in the following manner:
 -   `$1` is the folder to which you should output your `fig1_2.jpg` and `fig2_2.jpg`.
 -   `$2` is the directory of testing images in the **target** domain (e.g. `hw3_data/digits/mnistm/test`).
 -   `$3` is a string that indicates the name of the target domain, which will be either `mnistm`, `usps` or `svhn`. 
-	- Note that you should run the model whose *target* domain corresponds with `$3`. For example, when `$3` is `mnistm`, you should make your prediction using your "USPS → MNIS-M" model, **NOT** your "MNIST-M → SVHN" model.
+	- Note that you should run the model whose *target* domain corresponds with `$3`. For example, when `$3` is `mnistm`, you should make your prediction using your "USPS→MNIST-M" model, **NOT** your "MNIST-M→SVHN" model.
 -   `$4` is the path to your output prediction file (e.g. `hw3_data/digits/mnistm/test_pred.csv`).
+
+> 🆕 ***NOTE***  
+> For the sake of conformity, please use the `python3` command to call your `.py` files in all your shell scripts. Do not use `python` or other aliases, otherwise your commands may fail in our autograding scripts.
 
 ### Packages
 Below is a list of packages you are allowed to import in this assignment:
