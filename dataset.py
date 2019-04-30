@@ -41,7 +41,7 @@ class CelebA(Dataset):
         anno_file    = os.path.join(root, "train.csv")
         dataFrame = pd.read_csv(anno_file)
         
-        for index, row in dataFrame.iterrows():
+        for _, row in dataFrame.iterrows():
             img_name, keyFeature = row["image_name"], row[feature]
             img_name = os.path.join(image_folder, img_name)
             
@@ -56,7 +56,12 @@ class CelebA(Dataset):
         img_name, feature = self.datas[index]
         
         img = Image.open(img_name)
-        feature = torch.tensor(feature)
+        
+        if feature == 0:
+            feature = torch.Tensor([1, 0])
+        elif feature == 1:
+            feature = torch.Tensor([0, 1])
+        # feature = torch.Tensor(feature)
         
         if self.transform: 
             img = self.transform(img)
@@ -100,12 +105,12 @@ class NumberClassify(Dataset):
         img = Image.open(img_name)
         label = torch.tensor(label)
         
+        if self.black:
+            img = img.convert("RGB")
+
         if self.transform: 
             img = self.transform(img)
 
-        if self.black:
-            img = img.expand(-1, -1, 3)
-        
         return img, label, img_name
 
 def celebA_unittest():
@@ -151,12 +156,32 @@ def number_unittest():
 
     return
 
-def main():
-    celebA_unittest()
-    print("celebA_unittest Passed!")
+def usps_unittest():
+    print("USPS, Black: True, Train: True")
 
-    number_unittest()
-    print("number_unittest Passed!")
+    dataset = NumberClassify("./hw3_data/digits", "usps", train=True, black=True, transform=transforms.Compose([
+        transforms.ToTensor()
+    ]))
+
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
+
+    dataiter = iter(dataloader)
+    img, label, img_name = next(dataiter)
+    print(img_name)
+    print(label)
+    print(img.shape)
+    
+    return
+
+def main():
+    # celebA_unittest()
+    # print("celebA_unittest Passed!")
+
+    # number_unittest()
+    # print("number_unittest Passed!")
+
+    usps_unittest()
+    print("usps_unittest Passed!")
 
 if __name__ == "__main__":
     main()
