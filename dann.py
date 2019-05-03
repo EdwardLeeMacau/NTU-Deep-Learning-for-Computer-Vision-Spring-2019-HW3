@@ -33,8 +33,8 @@ class ReverseLayerF(Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        output = grad_output.neg() * ctx.alpha
-        return output, None
+        grad_output = grad_output.neg() * ctx.alpha
+        return grad_output, None
 
 def grad_reverse(x, constant):
     return ReverseLayerF.apply(x, constant)
@@ -160,7 +160,7 @@ class Domain_Classifier(nn.Module):
 
             # Layer 3
             nn.Linear(1024, 2),
-            nn.LogSoftmax(dim=1),
+            # nn.LogSoftmax(dim=1),
         )
 
     def forward(self, feature, constant):

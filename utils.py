@@ -66,3 +66,30 @@ def checkpointToModel(checkpoint_path: str, model_path: str):
     }
 
     torch.save(newState, model_path)
+
+def saveDANN(checkpoint_path: str, feature_extractor, class_classifier, domain_classifier):
+    state = {
+        'feature_extractor': feature_extractor.state_dict(),
+        'class_classifier': class_classifier.state_dict(),
+        'domain_classifier': domain_classifier.state_dict(),
+    }
+    torch.save(state, checkpoint_path)
+
+def loadDANN(checkpoint_path: str, feature_extractor, class_classifier, domain_classifier):
+    state = torch.load(checkpoint_path)
+    
+    feature_extractor.load_state_dict(state['feature_extractor'])
+    class_classifier.load_state_dict(state['class_classifier'])
+    domain_classifier.load_state_dict(state['domain_classifier'])
+    print('Model loaded from %s' % checkpoint_path)
+
+    return feature_extractor, class_classifier, domain_classifier
+
+def loadAB(checkpoint_path: str, feature_extractor, class_classifier):
+    state = torch.load(checkpoint_path)
+    
+    feature_extractor.load_state_dict(state['feature_extractor'])
+    class_classifier.load_state_dict(state['class_classifier'])
+    print('Model loaded from %s' % checkpoint_path)
+
+    return feature_extractor, class_classifier

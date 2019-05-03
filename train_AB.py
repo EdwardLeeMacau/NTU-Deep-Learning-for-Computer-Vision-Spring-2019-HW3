@@ -194,7 +194,7 @@ def train_A_test_B(source, target, epochs, lr, weight_decay):
             textfile.write(str(tgt_acc))
 
         if epoch % opt.save_interval == 0:
-            save("./models/dann/{}/Train_{}_Test_{}.pth".format(opt.tag, source, target), feature_extractor, class_classifier)
+            save("./models/dann/{}/Train_A_Test_B_{}_{}_{}.pth".format(opt.tag, source, target, epoch), feature_extractor, class_classifier)
 
     return feature_extractor, class_classifier
 
