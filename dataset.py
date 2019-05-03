@@ -88,7 +88,7 @@ class NumberClassify(Dataset):
 
         dataFrame = pd.read_csv(anno_file)
         
-        for index, row in dataFrame.iterrows():
+        for _, row in dataFrame.iterrows():
             img_name, label = row["image_name"], row["label"]
             img_name = os.path.join(image_folder, img_name)
             
@@ -103,7 +103,7 @@ class NumberClassify(Dataset):
         img_name, label = self.datas[index]
         
         img = Image.open(img_name)
-        label = torch.tensor(label)
+        label = torch.eye(10)[label]
         
         if self.black:
             img = img.convert("RGB")
