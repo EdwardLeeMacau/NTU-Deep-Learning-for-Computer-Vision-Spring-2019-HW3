@@ -87,14 +87,14 @@ class Feature_Extractor(nn.Module):
 
         self.feature = nn.Sequential(
             # Layer 1
-            nn.Conv2d(3, 64, kernel_size=5),
+            nn.Conv2d(3, 64, kernel_size=5, padding=2),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
             
             nn.MaxPool2d(kernel_size=2, stride=2),
 
             # Layer 2
-            nn.Conv2d(64, 64, kernel_size=5),
+            nn.Conv2d(64, 64, kernel_size=5, padding=2),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
 
@@ -109,8 +109,9 @@ class Feature_Extractor(nn.Module):
         )
 
     def forward(self, x):
-        x = x.expand(x.shape[0], 3, 28, 28)
+        x = x.expand(-1, 3, 28, 28)
         x = self.feature(x)
+        # print("Feature.shape: \t{}".format(x.shape))
 
         return x
 
@@ -120,7 +121,7 @@ class Class_Classifier(nn.Module):
         
         self.class_detect = nn.Sequential(
             # Layer 1
-            nn.Linear(128 * 4 * 4, 4096),
+            nn.Linear(128 * 7 * 7, 4096),
             nn.BatchNorm1d(4096),
             nn.ReLU(inplace=True),
             nn.Dropout(0.5),
@@ -132,7 +133,7 @@ class Class_Classifier(nn.Module):
 
             # Layer 3
             nn.Linear(2048, 10),
-            nn.LogSoftmax(dim=1),
+            # nn.LogSoftmax(dim=1),
         )
 
     def forward(self, feature):
@@ -146,7 +147,7 @@ class Domain_Classifier(nn.Module):
 
         self.domain_detect = nn.Sequential(
             # Layer 1
-            nn.Linear(128 * 4 * 4, 1024),
+            nn.Linear(128 * 7 * 7, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(inplace=True),
             nn.Dropout(0.5),

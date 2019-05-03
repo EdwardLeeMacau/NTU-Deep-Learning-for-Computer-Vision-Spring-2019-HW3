@@ -14,7 +14,7 @@ import logging
 import logging.config
 import os
 import random
-import time
+import datetime
 
 import numpy as np
 import torch.backends.cudnn as cudnn
@@ -43,8 +43,11 @@ def train(feature_extractor, class_classifier, source_train_loader, optim, epoch
         #-------------------------------
         # Prepare the images and labels
         #-------------------------------
-        source_img, source_label = source_batch
-        source_img, source_label = source_img.to(DEVICE), source_label.to(DEVICE)
+        source_img, source_label, _ = source_batch
+        source_img, source_label = source_img.to(DEVICE), source_label.view(-1).type(torch.long).to(DEVICE)
+        batch_size = len(source_label)
+        # print("Label.shape: \t{}".format(source_label.shape))
+        # print(source_label)
 
         #-------------------------------
         # Setup optimizer
@@ -56,17 +59,24 @@ def train(feature_extractor, class_classifier, source_train_loader, optim, epoch
         #-------------------------------
         # Get features, class pred, domain pred:
         #-------------------------------
-        source_feature = feature_extractor(source_img)
+        source_feature = feature_extractor(source_img).view(batch_size, -1)
         class_predict  = class_classifier(source_feature)
 
         #-------------------------------
         # Compute the accuracy, loss
         #-------------------------------
+        # print(class_predict.type())
+        # print(source_label.type())
+        # print(class_predict.shape)
+        # print(source_label.shape)
         loss = class_criterion(class_predict, source_label)
         loss.backward()
         optim.step()
 
-        source_acc = np.mean(np.argmax(class_predict, axis=1) == np.argmax(source_label, axis=1))
+        class_predict = class_predict.cpu().detach().numpy()
+        source_label  = source_label.cpu().detach().numpy()
+
+        source_acc = np.mean(np.argmax(class_predict, axis=1) == source_label)
 
         if index % opt.log_interval == 0:
             print("[Epoch %d] [ %d/%d ] [src_acc: %d%%] [loss_Y: %f] [loss_D: N/A]" % (epoch, index, len(source_train_loader), 100 * source_acc, loss.item()))
@@ -85,16 +95,21 @@ def val(feature_extractor, class_classifier, source_loader, target_loader, class
         #------------------------
         # Calculate the accuracy, loss
         #------------------------
-        for _, (img, label) in enumerate(loader, 1):
-            img        = img.to(DEVICE)
-            feature    = feature_extractor(img)
+        for _, (img, label, _) in enumerate(loader, 1):
+            batch_size = len(label)
+            img, label = img.to(DEVICE), label.type(torch.long).view(-1).to(DEVICE)
+            feature    = feature_extractor(img).view(batch_size, -1)
             class_pred = class_classifier(feature)
 
-            acc  = np.mean(np.argmax(class_pred, axis=1) == np.argmax(label, axis=1))
-            batch_acc.append(acc)
-
+            # Loss
             loss = class_criterion(class_pred, label)
             batch_los.append(loss.item())
+
+            # Accuracy
+            class_pred = class_pred.cpu().detach().numpy()
+            label = label.cpu().detach().numpy()
+            acc = np.mean(np.argmax(class_pred, axis=1) == label)
+            batch_acc.append(acc)
 
         acc = np.mean(batch_acc)
         domain_accuracy.append(acc)
@@ -107,7 +122,7 @@ def val(feature_extractor, class_classifier, source_loader, target_loader, class
 def train_A_test_B(source, target, epochs, lr, weight_decay):
     """ 
       Train the model with source data. Test the model with target data. 
-    """
+    """ 
     #-----------------------------------------------------
     # Create Model, optimizer, scheduler, and loss function
     #------------------------------------------------------
@@ -127,7 +142,9 @@ def train_A_test_B(source, target, epochs, lr, weight_decay):
     source_train_set = dataset.NumberClassify("./hw3_data/digits", source, train=True, black=source_black, transform=transforms.ToTensor())
     source_test_set = dataset.NumberClassify("./hw3_data/digits", source, train=False, black=source_black, transform=transforms.ToTensor())
     target_test_set = dataset.NumberClassify("./hw3_data/digits", target, train=False, black=target_black, transform=transforms.ToTensor())
-
+    print("Source_train: \t{}, {}".format(source, len(source_train_set)))
+    print("Source_test: \t{}, {}".format(source, len(source_test_set)))
+    print("Target_test: \t{}, {}".format(target, len(target_test_set)))
     source_train_loader = DataLoader(source_train_set, batch_size=opt.batch_size, shuffle=True, num_workers=opt.threads)
     source_test_loader = DataLoader(source_test_set, batch_size=opt.batch_size, shuffle=False, num_workers=opt.threads)
     target_test_loader = DataLoader(target_test_set, batch_size=opt.batch_size, shuffle=False, num_workers=opt.threads)
@@ -159,6 +176,7 @@ def train_A_test_B(source, target, epochs, lr, weight_decay):
         plt.xlabel("Epochs(s)")
         plt.title("[Acc - Train {} Test {}] vs Epoch(s)".format(source, target))
         plt.savefig("Train_A_Test_B_{}_{}-Acc.png".format(source, target))
+        plt.close()
 
         plt.clf()
         plt.figure(figsize=(12.8, 7.2))
@@ -168,9 +186,10 @@ def train_A_test_B(source, target, epochs, lr, weight_decay):
         plt.xlabel("Epochs(s)")
         plt.title("[Loss - Train {} Test {}] vs Epoch(s)".format(source, target))
         plt.savefig("Train_A_Test_B_{}_{}-Loss.png".format(source, target))
+        plt.close()
 
         with open('statistics.txt', 'a') as textfile:
-            textfile.write(time.strftime("%d, %b %Y %H:%M:%S", time.time()))
+            textfile.write(datetime.datetime.now().strftime("%d, %b %Y %H:%M:%S"))
             textfile.write(str(src_acc))
             textfile.write(str(tgt_acc))
 
@@ -230,5 +249,6 @@ if __name__ == "__main__":
     parser.add_argument("--log_interval", type=int, default=10, help="interval between everytime logging the training status.")
     
     opt = parser.parse_args()
-    
+    print(opt)
+
     main()

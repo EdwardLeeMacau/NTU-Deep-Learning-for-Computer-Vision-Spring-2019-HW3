@@ -103,7 +103,7 @@ class NumberClassify(Dataset):
         img_name, label = self.datas[index]
         
         img = Image.open(img_name)
-        label = torch.eye(10)[label]
+        label = torch.Tensor([label])
         
         if self.black:
             img = img.convert("RGB")
