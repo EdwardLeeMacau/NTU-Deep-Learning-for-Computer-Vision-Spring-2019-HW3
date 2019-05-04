@@ -90,13 +90,15 @@ class Feature_Extractor(nn.Module):
             nn.Conv2d(3, 64, kernel_size=5, padding=2),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
-            
+            nn.Dropout2d(0.5),
+
             nn.MaxPool2d(kernel_size=2, stride=2),
 
             # Layer 2
             nn.Conv2d(64, 64, kernel_size=5, padding=2),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
+            nn.Dropout2d(0.5),
 
             nn.MaxPool2d(kernel_size=2, stride=2),
 

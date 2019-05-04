@@ -113,6 +113,33 @@ class NumberClassify(Dataset):
 
         return img, label, img_name
 
+class NumberPredict(Dataset):
+    def __init__(self, img_folder, black=False, transform=None):
+        """ Handling read imgs only """
+        self.datas = []
+        self.img_folder = img_folder
+        self.black      = black
+        self.feature    = feature
+        self.transform  = transform
+        
+        self.datas = [os.path.join(self.img_folder, img_name) for img_name in os.listdir(self.img_folder)]
+        self.len   = len(self.datas)
+
+    def __len__(self):
+        return self.len
+
+    def __getitem__(self, index):
+        img_name = self.datas[index]
+        img      = Image.open(img_name)
+        
+        if self.black:
+            img = img.convert("RGB")
+
+        if self.transform: 
+            img = self.transform(img)
+
+        return img, img_name
+
 def celebA_unittest():
     features = utils.faceFeatures
     

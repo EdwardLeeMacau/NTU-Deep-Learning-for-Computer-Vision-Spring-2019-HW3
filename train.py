@@ -65,7 +65,8 @@ def train(feature_extractor, class_classifier, domain_classifier, source_loader,
         # Prepare the learning rate and the constant
         #-------------------------------------------
         # p = float(index + (epoch - 1) * len(source_loader)) / (opt.epochs * len(source_loader))
-        constant = opt.alpha
+        constant = opt.alpha * (1 + index / min(len(source_loader), len(target_loader)))
+        # constant = opt.alpha
 
         # optim = utils.set_optimizer_lr(optim, p)
         optim.zero_grad()
@@ -111,8 +112,9 @@ def train(feature_extractor, class_classifier, domain_classifier, source_loader,
         source_acc = np.mean(np.argmax(source_class_predict, axis=1) == source_label)
 
         if index % opt.log_interval == 0:
-            print("[Epoch {}] [ {:4d}/{:4d} ] [src_acc: {:.2f}] [loss_Y: {:.4f}] [loss_D: {:.4f}]".format(
-                    epoch, index, len(source_loader), 100 * source_acc, class_loss.item(), constant * domain_loss.item()))
+            # print(constant)
+            print("[Epoch {}] [ {:4d}/{:4d} ] [src_acc: {:.2f}%] [loss_Y: {:.4f}] [loss_D: {:.4f}]".format(
+                    epoch, index, min(len(target_loader), len(source_loader)), 100 * source_acc, class_loss.item(), constant * domain_loss.item()))
 
     return feature_extractor, class_classifier, domain_classifier
 
