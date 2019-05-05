@@ -343,10 +343,6 @@ def dann_performance_test(source, target, epochs, threshold, lr, weight_decay):
                         epoch, index, len(source_train_loader), 100 * source_acc, class_loss.item(), constant * domain_loss.item()))
 
 def main():
-    os.makedirs("./output", exist_ok=True)
-    os.makedirs("./output/dann", exist_ok=True)
-    os.makedirs("./output/dann/{}".format(opt.tag), exist_ok=True)
-
     os.makedirs("./models", exist_ok=True)
     os.makedirs("./models/dann", exist_ok=True)
     os.makedirs("./models/dann/{}".format(opt.tag), exist_ok=True)

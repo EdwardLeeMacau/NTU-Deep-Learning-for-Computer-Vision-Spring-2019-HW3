@@ -141,12 +141,15 @@ def train_A_test_B(source, target, epochs, lr, weight_decay):
 
     source_train_set = dataset.NumberClassify("./hw3_data/digits", source, train=True, black=source_black, transform=transforms.ToTensor())
     source_test_set = dataset.NumberClassify("./hw3_data/digits", source, train=False, black=source_black, transform=transforms.ToTensor())
+    target_train_set = dataset.NumberClassify("./hw3_data/digits", target, train=True, black=target_black, transform=transforms.ToTensor())
     target_test_set = dataset.NumberClassify("./hw3_data/digits", target, train=False, black=target_black, transform=transforms.ToTensor())
     print("Source_train: \t{}, {}".format(source, len(source_train_set)))
     print("Source_test: \t{}, {}".format(source, len(source_test_set)))
+    print("Target_train: \t{}, {}".format(target, len(target_train_set)))
     print("Target_test: \t{}, {}".format(target, len(target_test_set)))
     source_train_loader = DataLoader(source_train_set, batch_size=opt.batch_size, shuffle=True, num_workers=opt.threads)
     source_test_loader = DataLoader(source_test_set, batch_size=opt.batch_size, shuffle=False, num_workers=opt.threads)
+    target_train_loader = DataLoader(target_train_set, batch_size=opt.batch_size, shuffle=True, num_workers=opt.threads)
     target_test_loader = DataLoader(target_test_set, batch_size=opt.batch_size, shuffle=False, num_workers=opt.threads)
 
     src_acc = []
@@ -189,12 +192,14 @@ def train_A_test_B(source, target, epochs, lr, weight_decay):
         plt.close()
 
         with open('statistics.txt', 'a') as textfile:
-            textfile.write(datetime.datetime.now().strftime("%d, %b %Y %H:%M:%S"))
-            textfile.write(str(src_acc))
-            textfile.write(str(tgt_acc))
+            # textfile.write(datetime.datetime.now().strftime("%d, %b %Y %H:%M:%S"))
+            # textfile.write(str(src_acc))
+            # textfile.write(str(tgt_acc))
+            textfile.write("Source: {}, Target: {}, Accuracy: {}\n".format(source, target, max(tgt_acc)))
+            print("Source: {}, Target: {}, Accuracy: {}".format(source, target, max(tgt_acc)))
 
-        if epoch % opt.save_interval == 0:
-            save("./models/dann/{}/Train_A_Test_B_{}_{}_{}.pth".format(opt.tag, source, target, epoch), feature_extractor, class_classifier)
+        # if epoch % opt.save_interval == 0:
+        #     save("./models/dann/{}/Train_A_Test_B_{}_{}_{}.pth".format(opt.tag, source, target, epoch), feature_extractor, class_classifier)
 
     return feature_extractor, class_classifier
 
@@ -215,10 +220,6 @@ def load(checkpoint_path: str, feature_extractor, class_classifier):
     return feature_extractor, class_classifier
 
 def main():
-    os.makedirs("./output", exist_ok=True)
-    os.makedirs("./output/dann", exist_ok=True)
-    os.makedirs("./output/dann/{}".format(opt.tag), exist_ok=True)
-
     os.makedirs("./models", exist_ok=True)
     os.makedirs("./models/dann", exist_ok=True)
     os.makedirs("./models/dann/{}".format(opt.tag), exist_ok=True)

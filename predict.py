@@ -98,14 +98,11 @@ def val(feature_extractor, class_classifier, domain_classifier, loader, domain_i
 
     return class_acc, class_loss, domain_acc, domain_loss
 
-def predict(feature_extractor, class_classifier, domain_classifier, loader):
+def predict(feature_extractor, class_classifier, loader):
     feature_extractor.eval()
     class_classifier.eval()
-    domain_classifier.eval()
 
     pred_results = pd.DataFrame()
-
-    constant = 0.25
 
     #----------------------------
     # Calculate the accuracy, loss
@@ -116,7 +113,6 @@ def predict(feature_extractor, class_classifier, domain_classifier, loader):
         img          = img.to(DEVICE)
         feature      = feature_extractor(img).view(batch_size, -1)
         class_pred   = class_classifier(feature)
-        domain_pred  = domain_classifier(feature, constant)
 
         list_of_tuple = list(zip(img_name, class_pred))
         pred_result   = pd.DataFrame(list_of_tuple, columns=["image_name", "label"])
@@ -176,9 +172,6 @@ def main():
     feature_extractor = Feature_Extractor()
     class_classifier  = Class_Classifier()
     domain_classifier = Domain_Classifier()
-
-    class_criterion = torch.nn.CrossEntropyLoss().to(DEVICE)
-    domain_criterion = torch.nn.CrossEntropyLoss().to(DEVICE)
     
     DOMAINS = [("usps", "mnistm"), ("mnistm", "svhn"), ("svhn", 'usps')]
     
@@ -186,18 +179,18 @@ def main():
         if TARGET != opt.target: continue
 
         # Read the DANN model
-        feature_extractor, class_classifier, domain_classifier = utils.loadDANN(opt.model, feature_extractor, class_classifier, domain_classifier)
+        feature_extractor, class_classifier, _ = utils.loadDANN(opt.modelpath, feature_extractor, class_classifier, domain_classifier)
         
         # Create Dataloader
         target_black = True if TARGET == 'usps' else False
         
-        predict_set = dataset.NumberPredict(opt.dataset, TARGET, target_black, transform=transforms.ToTensor())
+        predict_set = dataset.NumberPredict(opt.dataset, target_black, transform=transforms.ToTensor())
         print("Transfer Learning: \t{} -> {}".format(SOURCE, TARGET))
         print("Predict_set: \t{}, {}".format(TARGET, len(predict_set)))
         predict_set_loader = DataLoader(predict_set, batch_size=opt.batch_size, shuffle=False, num_workers=opt.threads)
         
         # Predict
-        pred_results = predict(feature_extractor, class_classifier, domain_classifier, predict_set_loader)
+        pred_results = predict(feature_extractor, class_classifier, predict_set_loader)
         
         if opt.output:
             pred_results.to_csv(opt.output, index=False)

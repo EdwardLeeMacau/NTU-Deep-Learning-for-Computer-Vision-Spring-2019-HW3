@@ -2,6 +2,7 @@
 # IMPORTANT: make sure that your dataset is stored in a
 # folder with the same name as the one specified below!
 ./hw3_data/*
+./graphs/*
 
 # Ignore the zip file
 ./*.zip
