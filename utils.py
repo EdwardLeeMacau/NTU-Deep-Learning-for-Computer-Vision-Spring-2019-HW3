@@ -67,6 +67,25 @@ def checkpointToModel(checkpoint_path: str, model_path: str):
 
     torch.save(newState, model_path)
 
+def saveADDA(checkpoint_path: str, source_encoder, target_encoder, classifier):
+    state = {
+        'source_encoder': source_encoder.state_dict(),
+        'target_encoder': target_encoder.state_dict(),
+        'classifier': classifier.state_dict(),
+    }
+    torch.save(state, checkpoint_path)
+
+def loadADDA(checkpoint_path: str, source_encoder, target_encoder, classifier):
+    state = torch.load(checkpoint_path)
+    print(state.keys())
+    
+    source_encoder.load_state_dict(state['source_encoder'])
+    target_encoder.load_state_dict(state['target_encoder'])
+    classifier.load_state_dict(state['classifier'])
+    print('Model loaded from %s' % checkpoint_path)
+
+    return source_encoder, target_encoder, classifier
+
 def saveDANN(checkpoint_path: str, feature_extractor, class_classifier, domain_classifier):
     state = {
         'feature_extractor': feature_extractor.state_dict(),
@@ -77,6 +96,7 @@ def saveDANN(checkpoint_path: str, feature_extractor, class_classifier, domain_c
 
 def loadDANN(checkpoint_path: str, feature_extractor, class_classifier, domain_classifier):
     state = torch.load(checkpoint_path)
+    print(state.keys())
     
     feature_extractor.load_state_dict(state['feature_extractor'])
     class_classifier.load_state_dict(state['class_classifier'])

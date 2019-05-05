@@ -140,7 +140,7 @@ def train(epoch, noise_threshold=30):
         # Adversarial ground truths
         # if epoch > noise_threshold:
         valid = torch.Tensor(imgs.size(0), 1).fill_(1.0).to(device)
-        fake = torch.Tensor(imgs.size(0), 1).fill_(0.0).to(device)
+        fake  = torch.Tensor(imgs.size(0), 1).fill_(0.0).to(device)
         # else:
         # valid = torch.Tensor(imgs.size(0), 1).fill_(1.0).to(device)
         # fake = torch.Tensor(imgs.size(0), 1).fill_(0.0).to(device)
@@ -154,9 +154,7 @@ def train(epoch, noise_threshold=30):
         optimizer_G.zero_grad()
 
         # Sample noise as generator input
-        # Noise.shape: (Batchsize, z.length, 1, 1)
         z = torch.Tensor(np.random.normal(0, 1, size=(imgs.shape[0], opt.latent_dim, 1, 1))).to(device)
-        # print('z.shape: \t{}'.format(z.shape))
 
         # Generate a batch of images
         gen_imgs = generator(z)
