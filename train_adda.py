@@ -39,12 +39,12 @@ def train_source(encoder, classifier, optimizer, loader, criterion, epoch):
     encoder.train()
     classifier.train()
 
-    for index, img, label, _ in enumerate(loader, 1):
+    for index, (img, label, _) in enumerate(loader, 1):
         #-------------------------------
         # Prepare the images and labels
         #   img, label
         #-------------------------------
-        img, label = img.to(DEVICE), label.to(DEVICE)
+        img, label = img.to(DEVICE), label.type(torch.long).view(-1).to(DEVICE)
         
         #-------------------------------------------
         # Setup optimizer
@@ -54,7 +54,7 @@ def train_source(encoder, classifier, optimizer, loader, criterion, epoch):
         optimizer.zero_grad()
 
         #-------------------------------
-        # Get features, class pred:
+        # Get features, class pred
         #-------------------------------
         feature = encoder(img).view(-1, 128 * 7 * 7)
         class_predict = classifier(feature)
@@ -62,6 +62,8 @@ def train_source(encoder, classifier, optimizer, loader, criterion, epoch):
         #---------------------------------------
         # Compute the loss
         #------------------------------------
+        # print(class_predict)
+        # print(label)
         loss = criterion(class_predict, label)
         loss.backward()
         optimizer.step()
@@ -79,6 +81,9 @@ def train_source(encoder, classifier, optimizer, loader, criterion, epoch):
 
 def train_target(source_encoder, target_encoder, discriminator, criterion,
                  source_loader, target_loader, d_optimizer, e_optimizer, epoch):
+    target_encoder.train()
+    discriminator.train()
+
     for index, ((source_img, _, _), (target_img, _, _)) in enumerate(zip(source_loader, target_loader), 1):
         # --------------
         # Prepare labels
@@ -260,7 +265,7 @@ def adversarial_discriminative_domain_adaptation(source, target, source_epochs, 
 
             y_source = np.asarray(source_pred_values, dtype=float)
             y_target = np.asarray(target_pred_values, dtype=float)
-            x = np.arange(start=1, stop=opt.source_epochs + epoch + 1)
+            x = np.arange(start=1, stop=epoch + 1)
 
             # Draw graphs
             draw_graphs(x, y_source, y_target, threshold, source_epochs, source, target)
@@ -277,6 +282,13 @@ def adversarial_discriminative_domain_adaptation(source, target, source_epochs, 
                 savepath = "./models/adda/{}/ADDA_{}_{}_{}.pth".format(opt.tag, source, target, epoch)
                 utils.saveADDA(savepath, source_encoder, target_encoder, class_classifier)
                 print("Model saved to: {}".format(savepath))
+    
+        #-----------------------------------
+        # Save the model in the last epochs
+        #----------------------------------
+        savepath = "./models/adda/{}/ADDA_{}_{}_{}.pth".format(opt.tag, source, target, opt.source_epochs)
+        utils.saveADDA(savepath, source_encoder, target_encoder, class_classifier)
+        print("Model saved to: {}".format(savepath))
 
     if opt.pretrain:
         if not os.path.exists(opt.pretrain):
@@ -331,6 +343,13 @@ def adversarial_discriminative_domain_adaptation(source, target, source_epochs, 
             savepath = "./models/adda/{}/ADDA_{}_{}_{}.pth".format(opt.tag, source, target, epoch)
             utils.saveADDA(savepath, source_encoder, target_encoder, class_classifier)
             print("Model saved to: {}".format(savepath))
+
+    #-----------------------------------
+    # Save the model in the last epochs
+    #----------------------------------
+    savepath = "./models/adda/{}/ADDA_{}_{}_{}.pth".format(opt.tag, source, target, epoch)
+    utils.saveADDA(savepath, source_encoder, target_encoder, class_classifier)
+    print("Model saved to: {}".format(savepath))
 
     return source_encoder, target_encoder, class_classifier, discriminator
 

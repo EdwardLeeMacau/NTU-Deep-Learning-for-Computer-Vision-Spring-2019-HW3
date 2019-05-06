@@ -35,14 +35,14 @@ class Feature(nn.Module):
 
             nn.Conv2d(64, 128, kernel_size=5, stride=1, padding=2),
             nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.BatchNorm2d(64),
+            nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
             nn.Dropout2d(0.5),
         )
 
     def forward(self, img):
         feature = self.encoder(img)
-        print("Feature.shape: {}".format(feature.shape))
+        # print("Feature.shape: {}".format(feature.shape))
 
         return feature
 
@@ -71,7 +71,7 @@ class Classifier(nn.Module):
 
     def forward(self, feature):
         x = self.classify(feature)
-        print("Output.shape: {}".format(x.shape))
+        # print("Output.shape: {}".format(x.shape))
 
         return x
 
