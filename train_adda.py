@@ -91,36 +91,7 @@ def train_target(source_encoder, target_encoder, discriminator, criterion,
         source_img, target_img = source_img.to(DEVICE), target_img.to(DEVICE)
         batch_source_size = source_img.shape[0]
         batch_target_size = target_img.shape[0]
-
-        source_label = torch.zeros(batch_source_size).type(torch.long).to(DEVICE)
-        target_label = torch.ones(batch_target_size).type(torch.long).to(DEVICE)
-
-        # ------------------------
-        # Train discriminator 
-        # ------------------------
-        d_optimizer.zero_grad()
-        e_optimizer.zero_grad()
-
-        # extract and concat features
-        source_feature = source_encoder(source_img)
-        target_feature = target_encoder(target_img)
-        feature = torch.cat((source_feature, target_feature), 0)
-
-        # predict on discriminator
-        domain_pred = discriminator(feature)
-
-        # prepare real and fake label
-
-        domain_label = torch.cat((source_label, target_label), dim=0)
-
-        # compute loss for critic
-        discriminator_loss = criterion(domain_pred, domain_label)
-        discriminator_loss.backward()
-        d_optimizer.step()
-
-        domain_pred = torch.squeeze(feature.max(1)[1])
-        domain_acc  = (domain_pred == domain_label).float().mean()
-
+        
         # ---------------------------
         # Train target encoder 
         # ---------------------------
@@ -130,13 +101,66 @@ def train_target(source_encoder, target_encoder, discriminator, criterion,
         e_optimizer.zero_grad()
 
         # extract and target features
-        target_feature = target_encoder(target_img)
+        target_feature = target_encoder(target_img).view(batch_target_size, -1)
 
         # predict on discriminator
+        min_size = min(batch_source_size, batch_target_size)
         domain_pred  = discriminator(target_feature)
-        encoder_loss = criterion(domain_pred, source_label)
+        
+        # Flip the source and target labels
+        # target_label: 1->0
+        target_label = torch.zeros(batch_target_size).type(torch.long).to(DEVICE)
+        encoder_loss = criterion(domain_pred, target_label)
         encoder_loss.backward()
         e_optimizer.step()
+
+        # ------------------------
+        # Train discriminator 
+        # ------------------------
+        # zero gradients for optimizer
+        d_optimizer.zero_grad()
+        e_optimizer.zero_grad()
+                
+        # extract and concat features
+        source_feature = source_encoder(source_img).view(batch_source_size, -1)
+        target_feature = target_encoder(target_img).view(batch_target_size, -1)
+        feature = torch.cat((source_feature, target_feature), 0)
+
+        # predict on discriminator
+        domain_pred = discriminator(feature)
+
+        discriminator_interval = 4
+        if (epoch - opt.source_epochs) > 10: 
+            discriminator_interval = 8
+        if (epoch - opt.source_epochs) > 15:
+            discriminator_interval = 12
+        if (epoch - opt.source_epochs) > 25:
+            discriminator_interval = 16
+
+        if index % discriminator_interval == 0:
+            # prepare real and fake label
+            source_label = torch.zeros(batch_source_size).type(torch.long).to(DEVICE)
+            target_label = torch.ones(batch_target_size).type(torch.long).to(DEVICE)
+        
+            if opt.invert:
+                invert_source = int(0.25 * batch_source_size)
+                invert_target = int(0.25 * batch_target_size)
+                source_label[:invert_source] = torch.ones(invert_source).type(torch.long).to(DEVICE)       
+                target_label[:invert_target] = torch.zeros(invert_target).type(torch.long).to(DEVICE)
+        
+            domain_label = torch.cat((source_label, target_label), dim=0)
+
+            # compute loss for critic
+            discriminator_loss = criterion(domain_pred, domain_label)
+            discriminator_loss.backward()
+            d_optimizer.step()
+
+        # compute domain accuracy
+        source_label = torch.zeros(batch_source_size).type(torch.long).to(DEVICE)
+        target_label = torch.ones(batch_target_size).type(torch.long).to(DEVICE)
+        domain_label = torch.cat((source_label, target_label), dim=0)
+        domain_pred = feature.argmax(dim=1)
+        domain_acc  = (domain_pred == domain_label).float().mean()
 
         if index % opt.log_interval == 0:
                 print("[Epoch {}] [ {:4d}/{:4d} ] [domain_acc: {:.2f}] [loss_D: {:.4f}] [loss_E: {:.4f}]".format(
@@ -218,7 +242,7 @@ def adversarial_discriminative_domain_adaptation(source, target, source_epochs, 
     source_scheduler = optim.lr_scheduler.MultiStepLR(source_optimizer, milestones=[], gamma=0.1)
     
     encoder_criterion     = nn.CrossEntropyLoss().to(DEVICE)
-    adversarial_criterion = nn.BCELoss().to(DEVICE)
+    adversarial_criterion = nn.CrossEntropyLoss().to(DEVICE)
     
     #------------------
     # Create Dataloader
@@ -294,8 +318,14 @@ def adversarial_discriminative_domain_adaptation(source, target, source_epochs, 
         if not os.path.exists(opt.pretrain):
             raise IOError
         
-        source_encoder = utils.loadModel(opt.pretrain, source_encoder)
+        source_encoder, _, class_classifier = utils.loadADDA(opt.pretrain, source_encoder, target_encoder, class_classifier)
+        source_acc, source_loss = val(source_encoder, class_classifier, source_test_loader, encoder_criterion)
+        target_acc, target_loss = val(source_encoder, class_classifier, target_test_loader, encoder_criterion)
+                
+        source_pred_values = [(source_acc, source_loss) for _ in range(0, opt.source_epochs, opt.val_interval)]
+        target_pred_values = [(target_acc, target_loss) for _ in range(0, opt.source_epochs, opt.val_interval)]
 
+        
     #---------------------------------
     # Initial the target domain encoder
     #----------------------------------
@@ -312,32 +342,31 @@ def adversarial_discriminative_domain_adaptation(source, target, source_epochs, 
         
         target_encoder, discriminator = train_target(source_encoder, target_encoder, discriminator, adversarial_criterion,
                                                      source_train_loader, target_train_loader, discri_optimizer, target_optimizer, epoch)
+
+        if epoch % opt.val_interval == 0:
+            target_acc, target_loss = val(target_encoder, class_classifier, target_test_loader, encoder_criterion)
+
+            print("[Epoch {}] [ src_acc: {:.2f}% ] [ tgt_acc: {:.2f}% ] [ src_loss: {:.4f} ] [ tgt_loss: {:.4f} ]".format(
+                   epoch, 100 * source_acc, 100 * target_acc, source_loss, target_loss))
+
+            # Tracing the accuracy, loss
+            source_pred_values.append((source_acc, source_loss))
+            target_pred_values.append((target_acc, target_loss))
+
+            y_source = np.asarray(source_pred_values, dtype=float)
+            y_target = np.asarray(target_pred_values, dtype=float)
+            x = np.arange(start=1, stop=epoch+1, step=opt.val_interval)
         
-        source_acc, source_loss = val(source_encoder, class_classifier, source_test_loader, encoder_criterion)
-        target_acc, target_loss = val(target_encoder, class_classifier, target_test_loader, encoder_criterion)
-        # Return: class_acc, class_loss, domain_acc, domain_loss
+            # Draw the graphs
+            draw_graphs(x, y_source, y_target, threshold, source_epochs, source, target)
 
-        print("[Epoch {}] [ src_acc: {:.2f}% ] [ tgt_acc: {:.2f}% ] [ src_loss: {:.4f} ] [ tgt_loss: {:.4f} ]".format(
-               epoch, 100 * source_acc, 100 * target_acc, source_loss, target_loss))
-
-        # Tracing the accuracy, loss
-        source_pred_values.append((source_acc, source_loss))
-        target_pred_values.append((target_acc, target_loss))
-
-        y_source = np.asarray(source_pred_values, dtype=float)
-        y_target = np.asarray(target_pred_values, dtype=float)
-        x = np.arange(start=1, stop=epoch+1)
-        
-        # Draw the graphs
-        draw_graphs(x, y_source, y_target, threshold, source_epochs, source, target)
-
-        with open('statistics.txt', 'a') as textfile:
-            textfile.write(datetime.datetime.now().strftime("%d, %b %Y %H:%M:%S"))
-            textfile.write(str(source_acc))
-            textfile.write(str(target_acc))
+            # with open('statistics.txt', 'a') as textfile:
+            #     textfile.write(datetime.datetime.now().strftime("%d, %b %Y %H:%M:%S"))
+            #     textfile.write(str(source_acc))
+            #     textfile.write(str(target_acc))
 
         if target_acc > threshold:
-            # Update the threshold
+                # Update the threshold
             threshold = target_acc
             
             savepath = "./models/adda/{}/ADDA_{}_{}_{}.pth".format(opt.tag, source, target, epoch)
@@ -362,7 +391,7 @@ def main():
     # Train the model with DANN strategic
     #   SOURCE -> TARGET
     #-------------------------------------
-    DOMAINS = [("usps", "mnistm"), ("mnistm", "svhn"), ("svhn", 'usps')]
+    DOMAINS = [("mnistm", "svhn"), ("svhn", 'usps'), ("usps", "mnistm")]
     
     for SOURCE, TARGET in DOMAINS:
         
@@ -382,8 +411,8 @@ if __name__ == "__main__":
     os.system("clear")
     
     parser = argparse.ArgumentParser()
-    parser.add_argument("--source_epochs", type=int, default=50, help="number of epochs of training source")
-    parser.add_argument("--target_epochs", type=int, default=50, help="number of epochs of training target")
+    parser.add_argument("--source_epochs", type=int, default=10, help="number of epochs of training source")
+    parser.add_argument("--target_epochs", type=int, default=100, help="number of epochs of training target")
     parser.add_argument("--pretrain", type=str, help="Pretrain source encoder and classifier")
     parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
     parser.add_argument("--source_lr", type=float, default=1e-4, help="adam: learning rate")
@@ -395,6 +424,8 @@ if __name__ == "__main__":
     parser.add_argument("--tag", type=str, help="name of the model")
     parser.add_argument("--save_interval", type=int, default=10, help="interval epoch between everytime saving the model.")
     parser.add_argument("--log_interval", type=int, default=10, help="interval between everytime logging the training status.")
+    parser.add_argument("--invert", action="store_true", help="if invert, some imgs for the discriminator is labeled as wrong domain") 
+    parser.add_argument("--val_interval", type=int, default=1, help="interval between everytime execute draw_graphs")
     
     opt = parser.parse_args()
     print(opt)
