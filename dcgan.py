@@ -26,7 +26,6 @@ from matplotlib import pyplot as plt
 import dataset
 import utils
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
@@ -197,8 +196,8 @@ def train(epoch, noise_threshold=30):
             number   = batches_done // opt.save_interval
 
             savepath = "./models/gan/{}".format(opt.tag)
-            utils.saveModel(os.path.join(savepath, "generator_{}.pth".format(number)), generator)
-            utils.saveModel(os.path.join(savepath, "discriminator_{}.pth".format(number)), discriminator)
+            utils.saveModel(os.path.join(savepath, "generator_{}.pth".format(number)), generator.cpu())
+            # utils.saveModel(os.path.join(savepath, "discriminator_{}.pth".format(number)), discriminator)
             
             print("Model saved to: {}, iteration: {}".format(savepath, number))
 

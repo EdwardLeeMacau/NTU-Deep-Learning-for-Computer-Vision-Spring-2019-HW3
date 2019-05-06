@@ -60,13 +60,14 @@ class Generator(nn.Module):
         self.relu0  = nn.ReLU(inplace=True)
 
         self.conv_blocks = nn.Sequential(
-            #--------------------------------------------
+            # --------------------------------------------
             #  out.h = (in.h - 1) * stride + out_padding - 2 * in_padding + kernel_size
             # 
             #  Notes:
-            #  kernel_size = 5
-            #  out_padding = 3
-            #  in_padding  = 1
+            #    kernel_size = 5
+            #    out_padding = 3
+            #    in_padding  = 1
+            # -------------------------------------------------------------------------
 
             nn.ConvTranspose2d(512, 256, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(256),
@@ -302,7 +303,7 @@ def train(epoch):
             number   = batches_done // opt.save_interval
 
             savepath = "./models/acgan/{}-{}".format(opt.tag, feature)
-            utils.saveModel(os.path.join(savepath, "generator_{}.pth".format(number)), generator)
+            utils.saveModel(os.path.join(savepath, "generator_{}.pth".format(number)), generator.cpu())
             # utils.saveModel(os.path.join(savepath, "discriminator_{}.pth".format(number)), discriminator)
             
             print("Model saved to: {}, iteration: {}".format(savepath, number))
@@ -313,7 +314,6 @@ def main():
     # Print Training Setting
     os.system('clear')
     print(opt)
-    
     print("Choose feature: {}".format(feature))
     
     # Set the environment path
