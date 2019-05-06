@@ -79,10 +79,13 @@ def main():
             imgs = []
             labels = []
 
+            #----------------
+            # Source Domain
+            #----------------
             for label in range(0, 10):
                 df = s_df[s_df["label"] == label].sample(n=20)
                 
-                for index, (img_name, cls) in df.iterrows():
+                for index, (img_name, _) in df.iterrows():
                     img = PIL.Image.open(img_name)
                     imgs.append(img)
                     labels.append(label)
@@ -90,19 +93,26 @@ def main():
             x1 = transforms.ToTensor()(imgs)
             y1 = torch.Tensor(labels, dtype=torch.float)
 
+            x1 = source_encoder(x1).view(-1, 128 * 7 * 7)
+
             imgs = []
             labels = []
 
+            #----------------
+            # Target Domain
+            #----------------
             for label in range(0, 10):
                 df = t_df[t_df["label"] == label].sample(n=20)
                 
-                for index, (img_name, cls) in df.iterrows():
+                for index, (img_name, _) in df.iterrows():
                     img = PIL.Image.open(img_name)
                     imgs.append(img)
                     labels.append(label)
 
             x2 = transforms.ToTensor()(imgs)
             y2 = torch.Tensor(labels, dtype=torch.float)
+
+            x2 = source_encoder(x2).view(-1, 128, 7, 7)
 
             # Draw tsne
             tsne(x1, x2, n=2, perpexity=opt.perpexity, source=source, target=target)
