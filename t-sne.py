@@ -7,6 +7,8 @@
     USPS: 28 * 28 * 1 -> 28 * 28 * 3
     SVHN: 28 * 28 * 3
     MNISTM: 28 * 28 * 3
+
+  This is a not finished code.
 """
 import argparse
 import os
@@ -19,6 +21,7 @@ from matplotlib import pyplot as plt
 from sklearn.manifold import TSNE
 from torchvision import transforms
 
+import dataset
 import utils
 from adda import Classifier, Feature
 from dann import Class_Classifier, Domain_Classifier, Feature_Extractor
@@ -58,23 +61,29 @@ def main():
         target_encoder = Feature()
         classifier = Classifier(128 * 7 * 7, 1000, 10)
 
-        for SOURCE, TARGET in DOMAINS:
-            sourcepath = "./hw3_data/digits/{}".format(SOURCE)
-            targetpath = "./hw3_data/digits/{}".format(TARGET) 
-            sourcecsv  = os.path.join(sourcepath, "test.csv")
-            targetcsv  = os.path.join(targetpath, "test.csv")
-            modelpath  = os.path.join("./models/dann/20190504/ADDA_{}.pth".format(TARGET))    
+    if opt.dann:
+        feature_exatractor = Feature_Extractor()
+        class_classifier = Class_Classifier()
 
-            paths[(SOURCE, TARGET)].append((sourcepath, targetpath, sourcecsv, targetcsv, modelpath))     
+        for SOURCE, TARGET in DOMAINS:
+            sourcepath = "./hw3_data/digits/{}/".format(SOURCE)
+            targetpath = "./hw3_data/digits/{}/".format(TARGET) 
+            # sourcecsv  = os.path.join(sourcepath, "test.csv")
+            # targetcsv  = os.path.join(targetpath, "test.csv")
+            # modelpath  = os.path.join("./models/dann/20190504/ADDA_{}.pth".format(TARGET))    
+
+            paths[(SOURCE, TARGET)].append((sourcepath, targetpath))     
 
         # Read model
         for (source, target) in paths:
-            sourcepath, targetpath, sourcecsv, targetcsv, modelpath = paths[(source, target)]
-            source_encoder, target_encoder, _ = utils.loadADDA(modelpath, source_encoder, target_encoder, classifier)
+            sourcepath, targetpath = paths[(source, target)]
+            feature_extractor, class_classifier, _ = utils.loadDANN(modelpath, Feature_Extractor(), Class_Classifier(), Domain_Classifier())
             
+            source_set = dataset.NumberClassify(sourcepath, train=True, black=False)
+
             # Random pick 20 images for each class.
-            s_df = pd.read_csv(sourcecsv)
-            t_df = pd.read_csv(targetcsv)
+            # s_df = pd.read_csv(sourcecsv)
+            # t_df = pd.read_csv(targetcsv)
 
             imgs = []
             labels = []
@@ -83,7 +92,7 @@ def main():
             # Source Domain
             #----------------
             for label in range(0, 10):
-                df = s_df[s_df["label"] == label].sample(n=20)
+                # df = s_df[s_df["label"] == label].sample(n=20)
                 
                 for index, (img_name, _) in df.iterrows():
                     img = PIL.Image.open(img_name)

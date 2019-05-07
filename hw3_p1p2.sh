@@ -1,6 +1,6 @@
 # TODO: create shell script for running your GAN/ACGAN model
 if ! [ -f "./DCGAN_generator.pth" ]; then
-    wget -O ./DCGAN_generator.pth
+    wget -O ./DCGAN_generator.pth https://www.dropbox.com/s/31861w9cht5nkho/degan_generator.pth?dl=0
 fi
 
 if ! [ -f "./ACGAN_generator.pth" ]; then
