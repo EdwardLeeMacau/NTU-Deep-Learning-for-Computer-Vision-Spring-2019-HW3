@@ -116,16 +116,15 @@ def main(command):
         gen_imgs = generator(z, labels)
         save_image(gen_imgs.data, os.path.join(opt.output, "fig2_2.jpg"), nrow=10, normalize=True)
     
-    for i in range(0, 100):
-        np.random.seed(i)
-        torch.manual_seed(i)
-        torch.cuda.manual_seed_all(i)
+    if dcgan:
+        np.random.seed(8)
+        torch.manual_seed(8)
+        torch.cuda.manual_seed_all(8)
 
-        if dcgan:
-            z = torch.from_numpy(np.random.normal(0, 1, size=(32, opt.latent_dim, 1, 1))).type(torch.float)
-            gen_imgs = generator(z)
+        z = torch.from_numpy(np.random.normal(0, 1, size=(32, opt.latent_dim, 1, 1))).type(torch.float)
+        gen_imgs = generator(z)
 
-            save_image(gen_imgs.data, os.path.join(opt.output, "fig1_2_{}.jpg".format(i)), nrow=8, normalize=True)
+        save_image(gen_imgs.data, os.path.join(opt.output, "fig1_2.jpg"), nrow=8, normalize=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
