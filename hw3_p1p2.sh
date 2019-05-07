@@ -4,7 +4,7 @@ if ! [ -f "./DCGAN_generator.pth" ]; then
 fi
 
 if ! [ -f "./ACGAN_generator.pth" ]; then
-    wget -O ./ACGAN_generator.pth 
+    wget -O ./ACGAN_generator.pth https://www.dropbox.com/s/4at71l9xxrpqrk8/acgan_generator.pth?dl=0
 fi
 
 if ! [ -d $1 ]; then

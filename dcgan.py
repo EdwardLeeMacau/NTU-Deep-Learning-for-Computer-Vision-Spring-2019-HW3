@@ -29,7 +29,7 @@ import utils
 parser = argparse.ArgumentParser()
 parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
-parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
+parser.add_argument("--lr", type=float, default=2e-4, help="adam: learning rate")
 parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
 parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of first order momentum of gradient")
 parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
@@ -57,6 +57,10 @@ class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
 
+        # self.linear = nn.Linear(100, 512 * 4 * 4)
+        # self.bn0    = nn.BatchNorm2d(512)
+        # self.relu   = nn.ReLU(inplace=True)
+
         self.model = nn.Sequential(
             nn.ConvTranspose2d(100, 512, 4, 1, 0, bias=False),
             nn.BatchNorm2d(512),
@@ -79,6 +83,9 @@ class Generator(nn.Module):
         )
 
     def forward(self, z):
+        # z = z.view(-1, opt.latent_dim)
+        # z = self.linear(z).view(-1, 512, 4, 4)
+        # z = self.relu(self.bn0(z))
         img = self.model(z)
         img = img.view(img.size(0), *img_shape)
         return img
@@ -128,7 +135,8 @@ dataloader = DataLoader(dataset, batch_size=opt.batch_size, shuffle=True, num_wo
 # Optimizers
 optimizer_G = torch.optim.Adam(generator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
 optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
-
+scheduler_G = torch.optim.lr_scheduler.MultiStepLR(optimizer_G, milestones=[20, 40], gamma=0.1)
+scheduler_D = torch.optim.lr_scheduler.MultiStepLR(optimizer_D, milestones=[20, 40], gamma=0.1)
 torch.set_default_dtype(torch.float)
 
 def train(epoch, noise_threshold=30):
@@ -239,6 +247,8 @@ def main():
     d_loss_iteration = []
     
     for epoch in range(1, opt.n_epochs):
+        scheduler_G.step()
+        scheduler_D.step()
         generator_loss, discriminator_loss = train(epoch)
         g_loss_iteration += generator_loss
         d_loss_iteration += discriminator_loss

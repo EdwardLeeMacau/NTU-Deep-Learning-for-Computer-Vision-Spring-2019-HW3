@@ -212,6 +212,8 @@ if __name__ == "__main__":
     os.system("clear")
     
     parser = argparse.ArgumentParser()
+    parser.add_argument("--dann", action="store_true", help="Use DANN")
+    parser.add_argument("--adda", action="store_true", help="Use ADDA"
     parser.add_argument("--alpha", type=int, default=0.25, help="Backpropagation constant")
     parser.add_argument("--batch_size", type=int, default=64, help="Images to read for every iteration")
     parser.add_argument("--dataset", type=str, help="The root of input dataset")

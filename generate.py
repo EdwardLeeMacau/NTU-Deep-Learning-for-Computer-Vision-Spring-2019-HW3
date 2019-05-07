@@ -15,12 +15,7 @@ import torchvision
 import utils
 from torchvision.utils import save_image
 
-# DEVICE = utils.selectDevice()
-DEVICE = "cpu"
-
-np.random.seed(0)
-torch.manual_seed(0)
-# torch.cuda.manual_seed_all(0)
+DEVICE = utils.selectDevice()
 
 class DCGAN_Generator(nn.Module):
     def __init__(self):
@@ -86,6 +81,8 @@ class ACGAN_Generator(nn.Module):
         #    Ref: hw3.dataset.py
         # ---------------------------------------------
         gen = torch.cat((z, labels), dim=1)
+        # print("gen.shape: {}".format(gen.shape))
+        # print("gen.dtype: {}".format(gen.dtype))
         gen = self.linear(gen).view(-1, 512, 4, 4)
         gen = self.bn0(gen)
         gen = self.relu0(gen)
@@ -105,21 +102,30 @@ def main(command):
         generator = utils.loadModel(opt.model, DCGAN_Generator())
 
     if acgan:
+        np.random.seed(47)
+        torch.manual_seed(47)
+        torch.cuda.manual_seed_all(47)
+
         feature = utils.faceFeatures[7]
         print("Using Feature: {}".format(feature))
 
-        z = torch.Tensor(np.random.normal(0, 1, size=(10, opt.latent_dim, 1, 1)), dtype=torch.float)
+        z = torch.from_numpy(np.random.normal(0, 1, size=(10, opt.latent_dim))).type(torch.float)
         z = torch.cat((z, z), dim=0)
-        labels = torch.Tensor(np.array([[1 - num, num] for num in range(2) for _ in range(10)]), dtype=torch.float)
+        labels = torch.from_numpy(np.array([[1 - num, num] for num in range(2) for _ in range(10)])).type(torch.float)
         
         gen_imgs = generator(z, labels)
         save_image(gen_imgs.data, os.path.join(opt.output, "fig2_2.jpg"), nrow=10, normalize=True)
     
-    if dcgan:
-        z = np.random.normal(0, 1, size=(32, opt.latent_dim, 1, 1))
-        gen_imgs = generator(z)
+    for i in range(0, 100):
+        np.random.seed(i)
+        torch.manual_seed(i)
+        torch.cuda.manual_seed_all(i)
 
-        save_image(gen_imgs.data, os.path.join(opt.output, "fig1_2,jpg", nrow=8, normalize=True)
+        if dcgan:
+            z = torch.from_numpy(np.random.normal(0, 1, size=(32, opt.latent_dim, 1, 1))).type(torch.float)
+            gen_imgs = generator(z)
+
+            save_image(gen_imgs.data, os.path.join(opt.output, "fig1_2_{}.jpg".format(i)), nrow=8, normalize=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
