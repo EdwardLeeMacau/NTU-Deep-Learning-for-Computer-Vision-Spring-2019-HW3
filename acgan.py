@@ -27,7 +27,7 @@ import utils
 parser = argparse.ArgumentParser()
 parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
-parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
+parser.add_argument("--lr", type=float, default=2e-5, help="adam: learning rate")
 parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
 parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of first order momentum of gradient")
 parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
@@ -41,6 +41,7 @@ parser.add_argument("--save_interval", type=int, default=625, help="interval to 
 opt = parser.parse_args()
 
 cuda = True if torch.cuda.is_available() else False
+print("CUDA: {}".format(cuda))
 device = utils.selectDevice()
 
 def weights_init_normal(m):
@@ -168,7 +169,7 @@ optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr, betas=(opt
 FloatTensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 LongTensor = torch.cuda.LongTensor if cuda else torch.LongTensor
 
-def sample_image(num):
+def sample_image(number):
     """ Saves a grid of generated faces with [feature] and [not_feature] """
     # Sample noise
     z = FloatTensor(np.random.normal(0, 1, size=(10, opt.latent_dim)))
@@ -181,7 +182,7 @@ def sample_image(num):
     # print("labels: {}".format(labels))
     gen_imgs = generator(z, labels)
     
-    save_image(gen_imgs.data, "./output/acgan/{}-{}/{}.png".format(opt.tag, feature, num), nrow=10, normalize=True)
+    save_image(gen_imgs.data, "./output/acgan/{}-{}/{}.png".format(opt.tag, feature, number), nrow=10, normalize=True)
 
 def train(epoch):
     generator_loss = []
@@ -303,7 +304,7 @@ def train(epoch):
             number   = batches_done // opt.save_interval
 
             savepath = "./models/acgan/{}-{}".format(opt.tag, feature)
-            utils.saveModel(os.path.join(savepath, "generator_{}.pth".format(number)), generator.cpu())
+            utils.saveModel(os.path.join(savepath, "generator_{}.pth".format(number)), generator)
             # utils.saveModel(os.path.join(savepath, "discriminator_{}.pth".format(number)), discriminator)
             
             print("Model saved to: {}, iteration: {}".format(savepath, number))

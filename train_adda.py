@@ -101,7 +101,7 @@ def train_target(source_encoder, target_encoder, discriminator, criterion,
         e_optimizer.zero_grad()
 
         # extract and target features
-        target_feature = target_encoder(target_img).view(batch_target_size, -1)
+        target_feature = target_encoder(target_img)
 
         # predict on discriminator
         min_size = min(batch_source_size, batch_target_size)
@@ -109,7 +109,7 @@ def train_target(source_encoder, target_encoder, discriminator, criterion,
         
         # Flip the source and target labels
         # target_label: 1->0
-        target_label = torch.zeros(batch_target_size).type(torch.long).to(DEVICE)
+        target_label = torch.zeros(batch_target_size).to(DEVICE)
         encoder_loss = criterion(domain_pred, target_label)
         encoder_loss.backward()
         e_optimizer.step()
@@ -122,49 +122,45 @@ def train_target(source_encoder, target_encoder, discriminator, criterion,
         e_optimizer.zero_grad()
                 
         # extract and concat features
-        source_feature = source_encoder(source_img).view(batch_source_size, -1)
-        target_feature = target_encoder(target_img).view(batch_target_size, -1)
+        source_feature = source_encoder(source_img)
+        target_feature = target_encoder(target_img)
         feature = torch.cat((source_feature, target_feature), 0)
 
         # predict on discriminator
         domain_pred = discriminator(feature)
 
-        discriminator_interval = 4
-        if (epoch - opt.source_epochs) > 10: 
-            discriminator_interval = 8
-        if (epoch - opt.source_epochs) > 15:
-            discriminator_interval = 12
-        if (epoch - opt.source_epochs) > 25:
-            discriminator_interval = 16
+        discriminator_interval = 1
 
-        if index % discriminator_interval == 0:
-            # prepare real and fake label
-            source_label = torch.zeros(batch_source_size).type(torch.long).to(DEVICE)
-            target_label = torch.ones(batch_target_size).type(torch.long).to(DEVICE)
+        # prepare real and fake label
+        source_label = torch.zeros(batch_source_size).to(DEVICE)
+        target_label = torch.ones(batch_target_size).to(DEVICE)
         
-            if opt.invert:
-                invert_source = int(0.25 * batch_source_size)
-                invert_target = int(0.25 * batch_target_size)
-                source_label[:invert_source] = torch.ones(invert_source).type(torch.long).to(DEVICE)       
-                target_label[:invert_target] = torch.zeros(invert_target).type(torch.long).to(DEVICE)
+        if opt.invert:
+            invert_source = int(opt.invert * batch_source_size)
+            invert_target = int(opt.invert * batch_target_size)
+            source_label[:invert_source] = torch.ones(invert_source).to(DEVICE)       
+            target_label[:invert_target] = torch.zeros(invert_target).to(DEVICE)
         
-            domain_label = torch.cat((source_label, target_label), dim=0)
+        domain_label = torch.cat((source_label, target_label), dim=0)
 
-            # compute loss for critic
-            discriminator_loss = criterion(domain_pred, domain_label)
-            discriminator_loss.backward()
-            d_optimizer.step()
+        # compute loss for critic
+        discriminator_loss = criterion(domain_pred, domain_label)
+        discriminator_loss.backward()
+        
+        # if index % discriminator_interval == 0:
+        d_optimizer.step()
 
         # compute domain accuracy
-        source_label = torch.zeros(batch_source_size).type(torch.long).to(DEVICE)
-        target_label = torch.ones(batch_target_size).type(torch.long).to(DEVICE)
-        domain_label = torch.cat((source_label, target_label), dim=0)
-        domain_pred = feature.argmax(dim=1)
-        domain_acc  = (domain_pred == domain_label).float().mean()
+        source_label = torch.zeros(batch_source_size).to(DEVICE)
+        target_label = torch.ones(batch_target_size).to(DEVICE)
+        domain_label = torch.cat((source_label, target_label), dim=0).type(torch.float)        
+        domain_pred[domain_pred < 0.5] = 0.
+        domain_pred[domain_pred > 0.5] = 1.
+        domain_acc = (domain_pred == domain_label).float().mean()
 
         if index % opt.log_interval == 0:
-                print("[Epoch {}] [ {:4d}/{:4d} ] [domain_acc: {:.2f}] [loss_D: {:.4f}] [loss_E: {:.4f}]".format(
-                        epoch, index, min(len(source_loader), len(target_loader)), 100 * domain_acc, discriminator_loss.item(), encoder_loss.item()))
+            print("[Epoch {}] [ {:4d}/{:4d} ] [domain_acc: {:.2f}] [loss_D: {:.10f}] [loss_E: {:.10f}]".format(
+                    epoch, index, min(len(source_loader), len(target_loader)), 100 * domain_acc, discriminator_loss.item(), encoder_loss.item()))
     
     return target_encoder, discriminator
 
@@ -233,7 +229,7 @@ def adversarial_discriminative_domain_adaptation(source, target, source_epochs, 
     source_encoder   = Feature().to(DEVICE)
     target_encoder   = Feature().to(DEVICE)
     class_classifier = Classifier(128 * 7 * 7, 1000, 10).to(DEVICE)
-    discriminator    = Discriminator(128 * 7 * 7, 500, 2).to(DEVICE)
+    discriminator    = Discriminator().to(DEVICE)
 
     source_optimizer = optim.Adam([{'params': source_encoder.parameters()},
                                    {'params': class_classifier.parameters()}], 
@@ -242,7 +238,7 @@ def adversarial_discriminative_domain_adaptation(source, target, source_epochs, 
     source_scheduler = optim.lr_scheduler.MultiStepLR(source_optimizer, milestones=[], gamma=0.1)
     
     encoder_criterion     = nn.CrossEntropyLoss().to(DEVICE)
-    adversarial_criterion = nn.CrossEntropyLoss().to(DEVICE)
+    adversarial_criterion = nn.MSELoss().to(DEVICE)
     
     #------------------
     # Create Dataloader
@@ -424,7 +420,7 @@ if __name__ == "__main__":
     parser.add_argument("--tag", type=str, help="name of the model")
     parser.add_argument("--save_interval", type=int, default=10, help="interval epoch between everytime saving the model.")
     parser.add_argument("--log_interval", type=int, default=10, help="interval between everytime logging the training status.")
-    parser.add_argument("--invert", action="store_true", help="if invert, some imgs for the discriminator is labeled as wrong domain") 
+    parser.add_argument("--invert", type=float, default=0.0, help="if invert, some imgs for the discriminator is labeled as wrong domain") 
     parser.add_argument("--val_interval", type=int, default=1, help="interval between everytime execute draw_graphs")
     
     opt = parser.parse_args()

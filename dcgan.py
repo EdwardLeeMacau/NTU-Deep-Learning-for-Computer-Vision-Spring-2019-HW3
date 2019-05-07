@@ -37,9 +37,9 @@ parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality 
 parser.add_argument("--img_size", type=int, default=64, help="size of each image dimension")
 parser.add_argument("--channels", type=int, default=3, help="number of image channels")
 parser.add_argument("--tag", type=str, help="name of the model")
-parser.add_argument("--sample_interval", type=int, default=500, help="interval between image samples")
+parser.add_argument("--sample_interval", type=int, default=625, help="interval between image samples")
 parser.add_argument("--log_interval", type=int, default=10, help="interval between everytime logging the G/D loss.")
-parser.add_argument("--save_interval", type=int, default=1000, help="interval to save the models")
+parser.add_argument("--save_interval", type=int, default=625, help="interval to save the models")
 opt = parser.parse_args()
 
 img_shape = (opt.channels, opt.img_size, opt.img_size)
@@ -52,6 +52,7 @@ def weights_init_normal(m):
     elif classname.find("BatchNorm2d") != -1:
         torch.nn.init.normal_(m.weight.data, 1.0, 0.02)
         torch.nn.init.constant_(m.bias.data, 0.0)
+
 class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
@@ -196,7 +197,7 @@ def train(epoch, noise_threshold=30):
             number   = batches_done // opt.save_interval
 
             savepath = "./models/gan/{}".format(opt.tag)
-            utils.saveModel(os.path.join(savepath, "generator_{}.pth".format(number)), generator.cpu())
+            utils.saveModel(os.path.join(savepath, "generator_{}.pth".format(number)), generator)
             # utils.saveModel(os.path.join(savepath, "discriminator_{}.pth".format(number)), discriminator)
             
             print("Model saved to: {}, iteration: {}".format(savepath, number))

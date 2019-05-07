@@ -76,7 +76,7 @@ class Classifier(nn.Module):
         return x
 
 class Discriminator(nn.Module):
-    def __init__(self, input_dims, hidden_dims, output_dims):
+    def __init__(self):
         super(Discriminator, self).__init__()
 
         self.restored = False
@@ -86,12 +86,17 @@ class Discriminator(nn.Module):
         #   SOURCE -> TARGET
         #-------------------------------------
         self.classify = nn.Sequential(
-            nn.Linear(input_dims, hidden_dims),
+            nn.Conv2d(128, 64, kernel_size=3, stride=3, padding=1),
+            # nn.Linear(input_dims, hidden_dims),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(hidden_dims, hidden_dims),
+            
+            nn.Conv2d(64, 32, kernel_size=3, stride=1, padding=0),
+            # nn.Linear(hidden_dims, hidden_dims),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(hidden_dims, output_dims),
-
+            
+            # nn.Linear(hidden_dims, output_dims),
+            nn.Conv2d(32, 1, kernel_size=1),
+            nn.Sigmoid(),
             # Using CrossEntropy to train this layer.
             # nn.LogSoftmax()
         )
