@@ -119,10 +119,9 @@ class NumberPredict(Dataset):
         self.datas = []
         self.img_folder = img_folder
         self.black      = black
-        self.feature    = feature
         self.transform  = transform
         
-        self.datas = [os.path.join(self.img_folder, img_name) for img_name in os.listdir(self.img_folder)]
+        self.datas = [os.path.join(img_folder, img_name) for img_name in os.listdir(img_folder)]
         self.len   = len(self.datas)
 
     def __len__(self):

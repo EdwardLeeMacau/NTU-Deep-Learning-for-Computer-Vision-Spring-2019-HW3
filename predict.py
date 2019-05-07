@@ -107,16 +107,22 @@ def predict(feature_extractor, class_classifier, loader):
     #----------------------------
     # Calculate the accuracy, loss
     #----------------------------
-    for _, (img, img_name) in enumerate(loader, 1):
+    for index, (img, img_name) in enumerate(loader, 1):
         batch_size   = len(img)
+
+        if index % opt.log_interval == 0:
+            print("Predicting: {}".format(index * batch_size))
 
         img          = img.to(DEVICE)
         feature      = feature_extractor(img).view(batch_size, -1)
-        class_pred   = class_classifier(feature)
+        class_pred   = class_classifier(feature).argmax(dim=1).cpu().tolist()
+        img_name     = [name.split("/")[-1] for name in img_name]
+        # print(type(img_name))
+        # print(type(class_pred))
 
         list_of_tuple = list(zip(img_name, class_pred))
         pred_result   = pd.DataFrame(list_of_tuple, columns=["image_name", "label"])
-        pred_results  = pd.concat((pred_result, pred_result), axis=0, ignore_index=True)
+        pred_results  = pd.concat((pred_results, pred_result), axis=0, ignore_index=True)
 
     return pred_results
 
@@ -179,8 +185,12 @@ def main():
         if TARGET != opt.target: continue
 
         # Read the DANN model
-        feature_extractor, class_classifier, _ = utils.loadDANN(opt.modelpath, feature_extractor, class_classifier, domain_classifier)
-        
+        feature_extractor, class_classifier, _ = utils.loadDANN(opt.model, feature_extractor, class_classifier, domain_classifier)
+        feature_extractor = feature_extractor.to(DEVICE)
+        class_classifier  = class_classifier.to(DEVICE)
+
+        del domain_classifier
+
         # Create Dataloader
         target_black = True if TARGET == 'usps' else False
         
@@ -206,20 +216,23 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=64, help="Images to read for every iteration")
     parser.add_argument("--dataset", type=str, help="The root of input dataset")
     parser.add_argument("--threads", type=int, default=8, help="Number of cpu threads to use during batch generation")
-    parser.add_argument("--model", type=str, required=True, help="The model to read.")
+    parser.add_argument("--log_interval", type=int, default=100, help="Interval between print message of iteration")
     subparser    = parser.add_subparsers(dest="target", help="Target Domain")
     
     svhnparser   = subparser.add_parser("svhn")
+    svhnparser.add_argument("--model", type=str, default="./DANN_svhn.pth")
     svhnparser.add_argument("--output", default="./output/dann/svhn_pred.csv", help="The predict csvfile path.")
 
     mnistmparser = subparser.add_parser("mnistm")
+    mnistmparser.add_argument("--model", type=str, default="./DANN_mnistm.pth")
     mnistmparser.add_argument("--output", default="./output/dann/mnistm_pred.csv", help="The predict csvfile path.")
     
     uspsparser   = subparser.add_parser("usps")
+    uspsparser.add_argument("--model", type=str, default="./DANN_usps.pth")
     uspsparser.add_argument("--output", default="./output/dann/usps_pred.csv", help="The predict csvfile path.")
     
     opt = parser.parse_args()
     print(opt)
     
-    check()
-    # main()
+    # check()
+    main()

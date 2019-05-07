@@ -49,7 +49,7 @@ class DCGAN_Generator(nn.Module):
 
     def forward(self, z):
         img = self.model(z)
-        img = img.view(img.size(0), 3, 64, 64)
+        img = img.view(img.shape[0], 3, 64, 64)
         return img
 
 class ACGAN_Generator(nn.Module):
@@ -113,13 +113,13 @@ def main(command):
         labels = torch.Tensor(np.array([[1 - num, num] for num in range(2) for _ in range(10)]), dtype=torch.float)
         
         gen_imgs = generator(z, labels)
-        save_image(gen_imgs.data, opt.output, nrow=10, normalize=True)
+        save_image(gen_imgs.data, os.path.join(opt.output, "fig2_2.jpg"), nrow=10, normalize=True)
     
     if dcgan:
         z = np.random.normal(0, 1, size=(32, opt.latent_dim, 1, 1))
         gen_imgs = generator(z)
 
-        save_image(gen_imgs.data, opt.output, nrow=8, normalize=True)
+        save_image(gen_imgs.data, os.path.join(opt.output, "fig1_2,jpg", nrow=8, normalize=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     subgroup = parser.add_subparsers(dest="command", help="Use ACGAN / DCGAN?")
     
     acganparser = subgroup.add_parser('acgan', help="using acgan generation code.")
-    acganparser.add_argument("--model", type=str, default="./models/acgan/20190503-Male/generator_29.pth", help="The model to read.")
+    acganparser.add_argument("--model", type=str, default="./models/acgan/20190503-Male/generator_30.pth", help="The model to read.")
     acganparser.add_argument("--output", type=str, help="The output path of the images")
     
     dcganparser = subgroup.add_parser('dcgan', help="using dcgan generation code.")
