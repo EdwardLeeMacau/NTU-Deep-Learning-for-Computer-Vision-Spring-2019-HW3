@@ -11,4 +11,4 @@ if ! [ -f "./DANN_usps.pth" ]; then
     wget -O ./DANN_usps.pth https://www.dropbox.com/s/ru8j3thet47igrd/DANN_usps.pth?dl=0
 fi
 
-python predict.py --dataset $1 $2 --output $3
+python3 predict.py --dataset $1 $2 --output $3

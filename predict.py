@@ -213,7 +213,7 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
     parser.add_argument("--dann", action="store_true", help="Use DANN")
-    parser.add_argument("--adda", action="store_true", help="Use ADDA"
+    parser.add_argument("--adda", action="store_true", help="Use ADDA")
     parser.add_argument("--alpha", type=int, default=0.25, help="Backpropagation constant")
     parser.add_argument("--batch_size", type=int, default=64, help="Images to read for every iteration")
     parser.add_argument("--dataset", type=str, help="The root of input dataset")
@@ -234,7 +234,7 @@ if __name__ == "__main__":
     uspsparser.add_argument("--output", default="./output/dann/usps_pred.csv", help="The predict csvfile path.")
     
     opt = parser.parse_args()
-    print(opt)
+    for key, value in vars(opt).items():
+        print("{:16} {}".format(key, value))
     
-    # check()
     main()

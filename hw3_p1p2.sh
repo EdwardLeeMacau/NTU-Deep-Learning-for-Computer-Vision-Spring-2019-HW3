@@ -11,5 +11,5 @@ if ! [ -d $1 ]; then
     mkdir $1
 fi
 
-python generate.py dcgan --model ./DCGAN_generator.pth --output $1
-python generate.py acgan --model ./ACGAN_generator.pth --output $1
+python3 generate.py dcgan --model ./DCGAN_generator.pth --output $1
+python3 generate.py acgan --model ./ACGAN_generator.pth --output $1
