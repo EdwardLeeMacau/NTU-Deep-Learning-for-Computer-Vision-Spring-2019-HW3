@@ -2,11 +2,6 @@
   FileName     [ predict.py ]
   PackageName  [ HW3 ]
   Synopsis     [ Domain Adaptive prediction from DANN(Domain Adaptive Neural Network). ]
-
-  Dataset:
-    USPS: 28 * 28 * 1 -> 28 * 28 * 3
-    SVHN: 28 * 28 * 3
-    MNISTM: 28 * 28 * 3
 """
 
 import argparse
@@ -16,8 +11,8 @@ import os
 import random
 import time
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
 import torch.utils.data
@@ -28,13 +23,16 @@ from torchvision import datasets, transforms
 
 import dataset
 import utils
-from dann import Class_Classifier, Domain_Classifier, Feature_Extractor
+from TransferLearning.adda import Classifier, Discriminator, Feature
+from TransferLearning.dann import (Class_Classifier, Domain_Classifier,
+                                   Feature_Extractor)
 
 # Set as true when the I/O shape of the model is fixed
 cudnn.benchmark = True
 DEVICE = utils.selectDevice()
 
-def val(feature_extractor, class_classifier, domain_classifier, loader, domain_indice, class_criterion, domain_criterion, gen_csv=None):
+def val(feature_extractor, class_classifier, domain_classifier, loader, 
+        domain_indice, class_criterion, domain_criterion, gen_csv=None):
     feature_extractor.eval()
     class_classifier.eval()
     domain_classifier.eval()
@@ -49,9 +47,7 @@ def val(feature_extractor, class_classifier, domain_classifier, loader, domain_i
     constant = 0.25
     domain_indice = torch.tensor(domain_indice).type(torch.long).to(DEVICE)
 
-    #----------------------------
     # Calculate the accuracy, loss
-    #----------------------------
     for _, (img, label, img_name) in enumerate(loader, 1):
         batch_size   = len(img)
 
@@ -117,9 +113,7 @@ def predict(feature_extractor, class_classifier, loader):
         feature      = feature_extractor(img).view(batch_size, -1)
         class_pred   = class_classifier(feature).argmax(dim=1).cpu().tolist()
         img_name     = [name.split("/")[-1] for name in img_name]
-        # print(type(img_name))
-        # print(type(class_pred))
-
+        
         list_of_tuple = list(zip(img_name, class_pred))
         pred_result   = pd.DataFrame(list_of_tuple, columns=["image_name", "label"])
         pred_results  = pd.concat((pred_results, pred_result), axis=0, ignore_index=True)
@@ -234,7 +228,4 @@ if __name__ == "__main__":
     uspsparser.add_argument("--output", default="./output/dann/usps_pred.csv", help="The predict csvfile path.")
     
     opt = parser.parse_args()
-    for key, value in vars(opt).items():
-        print("{:16} {}".format(key, value))
-    
     main()

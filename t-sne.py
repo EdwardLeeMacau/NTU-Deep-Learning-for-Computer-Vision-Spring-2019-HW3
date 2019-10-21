@@ -1,14 +1,7 @@
 """
   FileName     [ t-SNE.py ]
-  PackageName  [ HW3 ]
+  PackageName  [ DLCV Spring 2019 - DANN ]
   Synopsis     [ t-SNE implementation ]
-
-  Dataset:
-    USPS: 28 * 28 * 1 -> 28 * 28 * 3
-    SVHN: 28 * 28 * 3
-    MNISTM: 28 * 28 * 3
-
-  This is a not finished code.
 """
 import argparse
 import os
@@ -23,12 +16,24 @@ from torchvision import transforms
 
 import dataset
 import utils
-from adda import Classifier, Feature
-from dann import Class_Classifier, Domain_Classifier, Feature_Extractor
+from TransferLearning.adda import Classifier, Feature
+from TransferLearning.dann import (Class_Classifier, Domain_Classifier,
+                                   Feature_Extractor)
 
 DEVICE = utils.selectDevice()
 
 def tsne(x, y, n, perpexity, source, target):
+    """
+    T-SNE 
+
+    Parameters
+    ----------
+    x, y, n
+
+    perpexity : float
+
+    source, target : str
+    """
     x = TSNE(n_components=2, perplexity=perpexity).fit_transform(x)
     
     plt.clf()
@@ -38,6 +43,8 @@ def tsne(x, y, n, perpexity, source, target):
     plt.title("[T-SNE - Train {} Test {}] vs Epoch(s)".format(source, target))
     plt.savefig("t-sne_{}_{}".format(source, target))
     plt.close()
+
+    return
 
 def main():
     os.system("clear")

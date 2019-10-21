@@ -1,3 +1,8 @@
+"""
+  Filename    [ utils.py ]
+  PackageName [ DLCVSpring 2019 ]
+  Synposis    [ ]
+"""
 import sys
 
 import numpy as np
@@ -32,7 +37,8 @@ def saveCheckpoint(checkpoint_path, model, optimizer, scheduler, epoch):
         'scheduler': scheduler.state_dict()
     }
     torch.save(state, checkpoint_path)
-    # print('model saved to %s' % checkpoint_path)
+
+    return 
 
 def loadCheckpoint(checkpoint_path: str, model: nn.Module, optimizer: optim, scheduler: optim.lr_scheduler.MultiStepLR):
     state = torch.load(checkpoint_path)
@@ -40,7 +46,6 @@ def loadCheckpoint(checkpoint_path: str, model: nn.Module, optimizer: optim, sch
     model.load_state_dict(state['state_dict'])
     optimizer.load_state_dict(state['optimizer'])
     scheduler.load_state_dict(state['scheduler'])
-    print('model loaded from %s' % checkpoint_path)
 
     return model, optimizer, resume_epoch, scheduler
 
@@ -49,13 +54,13 @@ def saveModel(checkpoint_path: str, model: nn.Module):
         'state_dict': model.state_dict(),
     }
     torch.save(state, checkpoint_path)
-    print('model saved to %s' % checkpoint_path)
+
+    return 
 
 def loadModel(checkpoint_path: str, model: nn.Module):
     state = torch.load(checkpoint_path)
     model.load_state_dict(state['state_dict'])
-    print('Model loaded from %s' % checkpoint_path)
-
+    
     return model
 
 def checkpointToModel(checkpoint_path: str, model_path: str):
@@ -67,6 +72,8 @@ def checkpointToModel(checkpoint_path: str, model_path: str):
 
     torch.save(newState, model_path)
 
+    return
+
 def saveADDA(checkpoint_path: str, source_encoder, target_encoder, classifier):
     state = {
         'source_encoder': source_encoder.state_dict(),
@@ -74,6 +81,8 @@ def saveADDA(checkpoint_path: str, source_encoder, target_encoder, classifier):
         'classifier': classifier.state_dict(),
     }
     torch.save(state, checkpoint_path)
+
+    return
 
 def loadADDA(checkpoint_path: str, source_encoder, target_encoder, classifier):
     state = torch.load(checkpoint_path)

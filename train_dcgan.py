@@ -1,30 +1,27 @@
 """
-  FileName     [ gan.py ]
-  PackageName  [ HW3 ]
+  FileName     [ dcgan.py ]
+  PackageName  [ DLCV Spring 2019 - DCGAN ]
   Synopsis     [ DCGAN Model, train method and generate method. ]
-
-  Dataset: CelebA
-  Input.shape: 64 * 64 * 3
 """
 
 import argparse
-import math
 import os
-import logging
-import logging.config
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms
+from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from torchvision.utils import save_image
-from matplotlib import pyplot as plt
 
 import dataset
 import utils
+from GAN.model import DCGAN_Discriminator as Discriminator
+from GAN.model import DCGAN_Generator as Generator
+from GAN.model import weights_init_normal
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
@@ -45,91 +42,22 @@ opt = parser.parse_args()
 img_shape = (opt.channels, opt.img_size, opt.img_size)
 device = utils.selectDevice()
 
-def weights_init_normal(m):
-    classname = m.__class__.__name__
-    if classname.find("Conv") != -1:
-        torch.nn.init.normal_(m.weight.data, 0.0, 0.02)
-    elif classname.find("BatchNorm2d") != -1:
-        torch.nn.init.normal_(m.weight.data, 1.0, 0.02)
-        torch.nn.init.constant_(m.bias.data, 0.0)
-
-class Generator(nn.Module):
-    def __init__(self):
-        super(Generator, self).__init__()
-
-        # self.linear = nn.Linear(100, 512 * 4 * 4)
-        # self.bn0    = nn.BatchNorm2d(512)
-        # self.relu   = nn.ReLU(inplace=True)
-
-        self.model = nn.Sequential(
-            nn.ConvTranspose2d(100, 512, 4, 1, 0, bias=False),
-            nn.BatchNorm2d(512),
-            nn.ReLU(inplace=True),
-
-            nn.ConvTranspose2d(512, 256, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(256),
-            nn.ReLU(inplace=True),
-            
-            nn.ConvTranspose2d(256, 128, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
-            
-            nn.ConvTranspose2d(128, 64, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True),
-            
-            nn.ConvTranspose2d(64, opt.channels, 4, 2, 1, bias=False),
-            nn.Tanh()
-        )
-
-    def forward(self, z):
-        # z = z.view(-1, opt.latent_dim)
-        # z = self.linear(z).view(-1, 512, 4, 4)
-        # z = self.relu(self.bn0(z))
-        img = self.model(z)
-        img = img.view(img.size(0), *img_shape)
-        return img
-
-class Discriminator(nn.Module):
-    def __init__(self):
-        super(Discriminator, self).__init__()
-
-        self.model = nn.Sequential(
-            nn.Conv2d(opt.channels, 64, 4, 2, 1, bias=False),
-            nn.LeakyReLU(0.2, inplace=True),
-            
-            nn.Conv2d(64, 128, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2, inplace=True),
-            
-            nn.Conv2d(128, 256, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2, inplace=True),
-            
-            nn.Conv2d(256, 512, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2, inplace=True),
-
-            nn.Conv2d(512, 1, kernel_size=4, stride=1, padding=0, bias=False),
-            nn.Sigmoid()
-        )
-
-    def forward(self, img):
-        validity = self.model(img)
-
-        return validity
-
 # Loss function
 adversarial_loss = torch.nn.BCELoss().to(device)
 
 # Initialize generator and discriminator
-generator = Generator().to(device)
-discriminator = Discriminator().to(device)
+generator, discriminator = Generator(img_shape).to(device), Discriminator(img_shape).to(device)
 generator.apply(weights_init_normal)
 discriminator.apply(weights_init_normal)
 
 # Configure data loader
-dataset = dataset.CelebA("./hw3_data/face/", utils.faceFeatures[0], transform=transforms.Compose([transforms.ToTensor()]))
+dataset = dataset.CelebA(
+    "./hw3_data/face/", 
+    utils.faceFeatures[0], 
+    transform=transforms.Compose([
+        transforms.ToTensor()
+    ])
+)
 dataloader = DataLoader(dataset, batch_size=opt.batch_size, shuffle=True, num_workers=opt.n_cpu)
 
 # Optimizers
@@ -156,30 +84,27 @@ def train(epoch, noise_threshold=30):
         # Configure input
         real_imgs = imgs.type(torch.float).to(device)
 
-        # -----------------
-        #  Train Generator
-        # -----------------
+        # --------------------- #
+        #  Train Generator      #
+        # --------------------- #
         optimizer_G.zero_grad()
 
-        # Sample noise as generator input
+        # Gaussian noise as generator input
         z = torch.Tensor(np.random.normal(0, 1, size=(imgs.shape[0], opt.latent_dim, 1, 1))).to(device)
 
         # Generate a batch of images
         gen_imgs = generator(z)
-        # print('imgs.shape: \t{}'.format(gen_imgs.shape))
 
         # Loss measures generator's ability to fool the discriminator
-        # print('valid.shape: \t{}'.format(valid.shape))
-        # print('discr.shape: \t{}'.format(discriminator(gen_imgs).view(imgs.shape[0], -1).shape))
         g_loss = adversarial_loss(discriminator(gen_imgs), valid)
         g_loss.backward()
         optimizer_G.step()
 
         generator_loss.append(g_loss.item())
 
-        # ---------------------
-        #  Train Discriminator
-        # ---------------------
+        # --------------------- #
+        #  Train Discriminator  #
+        # --------------------- #
         optimizer_D.zero_grad()
 
         # Measure discriminator's ability to classify real from generated samples
@@ -193,9 +118,6 @@ def train(epoch, noise_threshold=30):
 
         batches_done = (epoch - 1) * len(dataloader) + i
 
-        # --------------------------
-        #  Logging, sampling, saving
-        # --------------------------
         # 1. Logging
         if batches_done % opt.log_interval == 0:
             print("[Epoch %d] [Batch %d/%d] [D loss: %f] [G loss: %f]" % (epoch, i, len(dataloader), d_loss.item(), g_loss.item()))
@@ -206,7 +128,6 @@ def train(epoch, noise_threshold=30):
 
             savepath = "./models/gan/{}".format(opt.tag)
             utils.saveModel(os.path.join(savepath, "generator_{}.pth".format(number)), generator)
-            # utils.saveModel(os.path.join(savepath, "discriminator_{}.pth".format(number)), discriminator)
             
             print("Model saved to: {}, iteration: {}".format(savepath, number))
 
@@ -215,25 +136,40 @@ def train(epoch, noise_threshold=30):
             number     = batches_done // opt.sample_interval
             samplepath = "./output/gan/{}/{}.png".format(opt.tag, number)
             save_image(gen_imgs.data[:32], samplepath, nrow=8, normalize=True)
+            
             print("Image saved to: {}".format(samplepath))
 
     return generator_loss, discriminator_loss
 
-def generate(generator, num_imgs):
-    """ Use trained generator to generate images, save it. """
-    # Fixed the random seed.
-    np.random.seed(0)
-    torch.manual_seed(0)
-    torch.cuda.manual_seed_all(0)
+def generate(generator, num_imgs, fix_randomseed=True):
+    """ 
+    Use generator to generate images, save it. 
+
+    Parameters
+    ----------
+    generator : nn.Module
+        The Generator
+
+    num_imgs : int
+        The number of images to generate
+
+    fix_randomseed : bool
+        If true, fixed the randomseed.
+    """
+    if fix_randomseed:
+        np.random.seed(0)
+        torch.manual_seed(0)
+        torch.cuda.manual_seed_all(0)
 
     z = np.random.normal(0, 1, size=(num_imgs, opt.latent_dim, 1, 1)).to(device)
     gen_imgs = generator(z)
 
     save_image(gen_imgs.data, "./output/gan/hw1.png", nrow=8, normalize=True)
 
+    return
+
 def main():
     os.system("clear")
-    print(opt)
 
     os.makedirs("./output", exist_ok=True)
     os.makedirs("./output/gan", exist_ok=True)
@@ -262,6 +198,7 @@ def main():
         else:
             x = np.arange(start=1, stop=(epoch * len(dataloader) + 1))
 
+        # TODO: Create a better loss logging function
         plt.clf()
         plt.figure(figsize=(12.8, 7.2))
         plt.plot(x, g_loss_iteration, label='G loss', color='r', linewidth=0.25)
@@ -271,8 +208,6 @@ def main():
         plt.xlabel("Iteration(s)")
         plt.title("G / D Loss vs Iteration(s)")
         plt.savefig("DCGAN_Loss_Iteration.png")
-
-    # generate(generator, 32)
 
 if __name__ == "__main__":
     main()

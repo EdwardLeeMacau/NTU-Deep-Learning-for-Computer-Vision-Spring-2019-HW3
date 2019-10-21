@@ -1,17 +1,7 @@
 """
   FileName     [ dann.py ]
-  PackageName  [ HW3 ]
+  PackageName  [ DLCV Spring 2019 - DANN ]
   Synopsis     [ DANN Models ]
-
-  Dataset:
-    USPS: 28 * 28 * 1 -> 28 * 28 * 3
-    SVHN: 28 * 28 * 3
-    MNISTM: 28 * 28 * 3
-
-  DANN Models:
-    Feature Layers
-    Class predictor
-    Domain predictor
 """
 
 import torch
@@ -21,9 +11,6 @@ import torch.nn.init as init
 from torch.autograd import Function
 from torch.utils.data import DataLoader
 from torchvision import transforms
-
-import dataset
-import utils
 
 class ReverseLayerF(Function):
     @staticmethod
@@ -129,6 +116,7 @@ class Domain_Classifier(nn.Module):
         d = self.domain_detect(feature)
 
         return d
+
 
 def dann_unittest():
     SOURCE = "usps"

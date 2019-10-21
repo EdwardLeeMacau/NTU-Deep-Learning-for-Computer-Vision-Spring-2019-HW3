@@ -1,13 +1,7 @@
 """
   FileName     [ dataset.py ]
-  PackageName  [ HW3 ]
+  PackageName  [ DLCV Spring 2019 - GAN ]
   Synopsis     [ Dataset of the HW3: CelebA, USPS, SVHN, MNISTM. ]
-
-  CelebA: 64 * 64 * 3
-
-  USPS: 28 * 28 * 1 -> 28 * 28 * 3
-  SVHN: 28 * 28 * 3
-  MNISTM: 28 * 28 * 3
 """
 
 import csv
@@ -15,15 +9,14 @@ import os
 import random
 import time
 
-# import cv2
 import numpy as np
-import pandas as pd
 import torch
 import torchvision.transforms as transforms
 from matplotlib import pyplot as plt
 from PIL import Image, ImageEnhance, ImageFilter
 from torch.utils.data import DataLoader, Dataset
 
+import pandas as pd
 import utils
 
 
@@ -61,7 +54,6 @@ class CelebA(Dataset):
             feature = torch.Tensor([1, 0])
         elif feature == 1:
             feature = torch.Tensor([0, 1])
-        # feature = torch.Tensor(feature)
         
         if self.transform: 
             img = self.transform(img)
@@ -71,11 +63,24 @@ class CelebA(Dataset):
 class NumberClassify(Dataset):
     def __init__(self, root, feature, train, black=False, transform=None):
         """ 
-          Save the imageNames and the labelNames and read in future.
+        Save the imageNames and the labelNames and read in future.
+        
+        Parameters
+        ----------
+        root : str
+
+        feature : str
+
+        train : bool
+
+        black : bool
+            The dataset is grey
+
+        transform : 
+            (...)
         """
-        self.datas = []
-        self.root  = root
-        self.black = black
+        self.datas     = []
+        self.black     = black
         self.feature   = feature
         self.transform = transform
 
@@ -113,6 +118,7 @@ class NumberClassify(Dataset):
 
         return img, label, img_name
 
+# TODO: Merge to NumberClassify
 class NumberPredict(Dataset):
     def __init__(self, img_folder, black=False, transform=None):
         """ Handling read imgs only """
@@ -138,76 +144,3 @@ class NumberPredict(Dataset):
             img = self.transform(img)
 
         return img, img_name
-
-def celebA_unittest():
-    features = utils.faceFeatures
-    
-    print(features[0])
-    dataset = CelebA("./hw3_data/face", features[0], transform=transforms.Compose([
-        transforms.ToTensor()
-    ]))
-    
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
-    
-    dataiter = iter(dataloader)
-    img, feature, img_name = next(dataiter)
-    
-    print(img_name)
-    print(feature)
-    print(img.shape)
-    plt.imshow(img[0].permute(1, 2, 0))
-    plt.waitforbuttonpress()
-    plt.close()
-    
-    return
-
-def number_unittest():
-    for feature, black, train in [("usps", True, True), ("svhn", False, True), ("mnistm", False, True), ("usps", True, False), ("svhn", False, False), ("mnistm", False, False)]:
-        print("{}, Black: {}, Train: {}".format(feature, black, train))
-
-        dataset = NumberClassify("./hw3_data/digits", feature, train=train, black=black, transform=transforms.Compose([
-            transforms.ToTensor()
-        ]))
-
-        dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
-
-        dataiter = iter(dataloader)
-        img, label, img_name = next(dataiter)
-        print(img_name)
-        print(label)
-        print(img.shape)
-        plt.imshow(img[0].permute(1, 2, 0))
-        plt.waitforbuttonpress()
-        plt.close()
-
-    return
-
-def usps_unittest():
-    print("USPS, Black: True, Train: True")
-
-    dataset = NumberClassify("./hw3_data/digits", "usps", train=True, black=True, transform=transforms.Compose([
-        transforms.ToTensor()
-    ]))
-
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
-
-    dataiter = iter(dataloader)
-    img, label, img_name = next(dataiter)
-    print(img_name)
-    print(label)
-    print(img.shape)
-    
-    return
-
-def main():
-    # celebA_unittest()
-    # print("celebA_unittest Passed!")
-
-    # number_unittest()
-    # print("number_unittest Passed!")
-
-    usps_unittest()
-    print("usps_unittest Passed!")
-
-if __name__ == "__main__":
-    main()

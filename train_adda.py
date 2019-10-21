@@ -1,18 +1,11 @@
 """
   FileName     [ train_adda.py ]
-  PackageName  [ HW3 ]
+  PackageName  [ DLCV Spring 2019 - ADDA ]
   Synopsis     [ ADDA training methods ]
-
-  Dataset:
-    USPS: 28 * 28 * 1 -> 28 * 28 * 3
-    SVHN: 28 * 28 * 3
-    MNISTM: 28 * 28 * 3
 """
 
 import argparse
 import datetime
-import logging
-import logging.config
 import os
 import random
 
@@ -28,42 +21,48 @@ from torchvision import datasets, transforms
 import dataset
 import predict
 import utils
-from adda import Feature, Classifier, Discriminator
-from dann import Class_Classifier, Domain_Classifier, Feature_Extractor
+from TransferLearning.adda import Classifier, Discriminator, Feature
 
 # Set as true when the I/O shape of the model is fixed
 cudnn.benchmark = True
 DEVICE = utils.selectDevice()
 
 def train_source(encoder, classifier, optimizer, loader, criterion, epoch):
+    """
+
+    Parameters
+    ----------
+    encoder : 
+
+    classifier : 
+
+    optimizer : 
+
+    loader :
+
+    criterion : 
+
+    epoch :
+
+    Return
+    ------
+    encoder
+
+    classifier
+    """
     encoder.train()
     classifier.train()
 
     for index, (img, label, _) in enumerate(loader, 1):
-        #-------------------------------
-        # Prepare the images and labels
-        #   img, label
-        #-------------------------------
         img, label = img.to(DEVICE), label.type(torch.long).view(-1).to(DEVICE)
         
-        #-------------------------------------------
-        # Setup optimizer
-        # Prepare the learning rate
-        #-------------------------------------------
-        # optim = utils.set_optimizer_lr(optim, p)
         optimizer.zero_grad()
 
-        #-------------------------------
         # Get features, class pred
-        #-------------------------------
         feature = encoder(img).view(-1, 128 * 7 * 7)
         class_predict = classifier(feature)
         
-        #---------------------------------------
         # Compute the loss
-        #------------------------------------
-        # print(class_predict)
-        # print(label)
         loss = criterion(class_predict, label)
         loss.backward()
         optimizer.step()
@@ -81,20 +80,42 @@ def train_source(encoder, classifier, optimizer, loader, criterion, epoch):
 
 def train_target(source_encoder, target_encoder, discriminator, criterion,
                  source_loader, target_loader, d_optimizer, e_optimizer, epoch):
+    """
+
+    Parameters
+    ----------
+    source_encoder : 
+
+    target_encoder : 
+
+    discriminator : 
+
+    criterion : 
+
+    source_loader, target_loader :
+
+    d_optimizer, e_optimizer : 
+
+    epoch :
+
+    Return
+    ------
+    encoder
+
+    classifier
+    """
     target_encoder.train()
     discriminator.train()
 
     for index, ((source_img, _, _), (target_img, _, _)) in enumerate(zip(source_loader, target_loader), 1):
-        # --------------
         # Prepare labels
-        # --------------
         source_img, target_img = source_img.to(DEVICE), target_img.to(DEVICE)
         batch_source_size = source_img.shape[0]
         batch_target_size = target_img.shape[0]
         
-        # ---------------------------
-        # Train target encoder 
-        # ---------------------------
+        # ------------------------ #
+        # Train target encoder     #
+        # ------------------------ #
 
         # zero gradients for optimizer
         d_optimizer.zero_grad()
@@ -165,6 +186,7 @@ def train_target(source_encoder, target_encoder, discriminator, criterion,
     return target_encoder, discriminator
 
 def val(encoder, classifier, loader, class_criterion):
+    """ Validate the model """
     encoder.eval()
     classifier.eval()
     
@@ -424,6 +446,4 @@ if __name__ == "__main__":
     parser.add_argument("--val_interval", type=int, default=1, help="interval between everytime execute draw_graphs")
     
     opt = parser.parse_args()
-    print(opt)
-    
     main()

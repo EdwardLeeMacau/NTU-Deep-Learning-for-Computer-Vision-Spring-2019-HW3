@@ -1,22 +1,16 @@
 """
   FileName     [ train.py ]
-  PackageName  [ HW3 ]
+  PackageName  [ DLCV Spring 2019 - DANN ]
   Synopsis     [ DANN training methods ]
-
-  Dataset:
-    USPS: 28 * 28 * 1 -> 28 * 28 * 3
-    SVHN: 28 * 28 * 3
-    MNISTM: 28 * 28 * 3
 """
 
 import argparse
 import datetime
-import logging
-import logging.config
 import os
 import random
 
 import numpy as np
+import pandas as pd
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
 import torch.utils.data
@@ -28,7 +22,9 @@ from torchvision import datasets, transforms
 import dataset
 import predict
 import utils
-from dann import Class_Classifier, Domain_Classifier, Feature_Extractor
+from TransferLearning.dann import (Class_Classifier, Domain_Classifier,
+                                   Feature_Extractor, ReverseLayerF,
+                                   grad_reverse)
 
 # Set as true when the I/O shape of the model is fixed
 cudnn.benchmark = True
@@ -36,18 +32,36 @@ DEVICE = utils.selectDevice()
 
 def train(feature_extractor, class_classifier, domain_classifier, source_loader, target_loader, 
           optim, epoch, class_criterion, domain_criterion):
-    """ Train each epoch with DANN framework. """
+    """ 
+    Train each epoch with DANN framework. 
+    
+    Parameters
+    ----------
+    feature_extractor : nn.Module
+
+    class_classifier : nn.Module
+
+    domain_classifier : nn.Module
+
+    source_loader, target_loader : DataLoader
+
+    optim :
+
+    epoch : int
+
+    class_criterion : 
+        Loss Function
+
+    domain_criterion :
+        Loss Function of Domain Classifier 
+    """
     loss = []
     feature_extractor.train()
     class_classifier.train()
     domain_classifier.train()
 
     for index, (source_batch, target_batch) in enumerate(zip(source_loader, target_loader), 1):
-        #-------------------------------
         # Prepare the images and labels
-        #   img, label
-        #   domain_label
-        #-------------------------------
         source_img, source_label, _ = source_batch
         target_img, target_label, _ = target_batch
         batch_size_src, batch_size_tgt = source_img.shape[0], target_img.shape[0]
@@ -119,36 +133,73 @@ def train(feature_extractor, class_classifier, domain_classifier, source_loader,
     return feature_extractor, class_classifier, domain_classifier
 
 def domain_adaptation(source, target, epochs, threshold, lr, weight_decay):
-    """ Using DANN framework to train the network. """
-    #-----------------------------------------------------
-    # Create Model, optimizer, scheduler, and loss function
-    #------------------------------------------------------
+    """ 
+    Using DANN framework to train the network. 
+    
+    Parameter
+    ---------
+    source, target : str
+
+    epochs : int
+
+    threshold : float
+        Maximum accuracy of pervious epochs
+
+    lr : float
+        Learning Rate 
+
+    weight_decay : float
+        Weight Regularization
+
+    Return
+    ------
+    feature_extractor, class_classifier, domain_classifier : nn.Module
+        (...)
+    """
     feature_extractor = Feature_Extractor().to(DEVICE)
     class_classifier  = Class_Classifier().to(DEVICE)
     domain_classifier = Domain_Classifier().to(DEVICE)
 
-    optimizer = optim.Adam([{'params': feature_extractor.parameters()},
-                            {'params': class_classifier.parameters()},
-                            {'params': domain_classifier.parameters()}], 
-                            lr=lr, betas=(opt.b1, opt.b2), weight_decay=weight_decay)
+    optimizer = optim.Adam([
+        {'params': feature_extractor.parameters()},
+        {'params': class_classifier.parameters()},
+        {'params': domain_classifier.parameters()}], 
+        lr=lr, betas=(opt.b1, opt.b2), weight_decay=weight_decay
+    )
     
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[20, 40], gamma=0.2)
     
     class_criterion = torch.nn.CrossEntropyLoss().to(DEVICE)
     domain_criterion = torch.nn.CrossEntropyLoss().to(DEVICE)
 
-    # loss_class = torch.nn.NLLLoss().to(DEVICE)
-    # loss_domain = torch.nn.NLLLoss().to(DEVICE)
-
-    #------------------
     # Create Dataloader
-    #------------------
+    # TODO: Make attributes nametuple for the datasets
     source_black = True if source == 'usps' else False
     target_black = True if target == 'usps' else False
-    source_train_set = dataset.NumberClassify("./hw3_data/digits", source, train=True, black=source_black, transform=transforms.ToTensor())
-    target_train_set = dataset.NumberClassify("./hw3_data/digits", target, train=True, black=target_black, transform=transforms.ToTensor())
-    source_test_set  = dataset.NumberClassify("./hw3_data/digits", source, train=False, black=source_black, transform=transforms.ToTensor())
-    target_test_set  = dataset.NumberClassify("./hw3_data/digits", target, train=False, black=target_black, transform=transforms.ToTensor())
+    source_train_set = dataset.NumberClassify(
+        "./hw3_data/digits", source, 
+        train=True, 
+        black=source_black, 
+        transform=transforms.ToTensor()
+    )
+    target_train_set = dataset.NumberClassify(
+        "./hw3_data/digits", target, 
+        train=True, 
+        black=target_black, 
+        transform=transforms.ToTensor()
+    )
+    source_test_set  = dataset.NumberClassify(
+        "./hw3_data/digits", source, 
+        train=False, 
+        black=source_black, 
+        transform=transforms.ToTensor()
+    )
+    target_test_set  = dataset.NumberClassify(
+        "./hw3_data/digits", target, 
+        train=False, 
+        black=target_black, 
+        transform=transforms.ToTensor()
+    )
     print("Source_train: \t{}, {}".format(source, len(source_train_set)))
     print("Source_test: \t{}, {}".format(source, len(source_test_set)))
     print("Target_train: \t{}, {}".format(target, len(target_train_set)))
@@ -218,8 +269,7 @@ def domain_adaptation(source, target, epochs, threshold, lr, weight_decay):
                 threshold = target_pred_value[0]
             
             utils.saveDANN("./models/dann/{}/DANN_{}_{}_{}.pth".format(opt.tag, source, target, epoch), feature_extractor, class_classifier, domain_classifier)
-            print("Model saved to: ./models/dann/{}/DANN_{}_{}_{}.pth".format(opt.tag, source, target, epoch))
-
+            
     return feature_extractor, class_classifier, domain_classifier
 
 def dann_performance_test(source, target, epochs, threshold, lr, weight_decay):
@@ -230,10 +280,12 @@ def dann_performance_test(source, target, epochs, threshold, lr, weight_decay):
     class_classifier  = Class_Classifier().to(DEVICE)
     domain_classifier = Domain_Classifier().to(DEVICE)
 
-    optimizer = optim.Adam([{'params': feature_extractor.parameters()},
-                            {'params': class_classifier.parameters()},
-                            {'params': domain_classifier.parameters()}], 
-                            lr=lr, betas=(opt.b1, opt.b2), weight_decay=weight_decay)
+    optimizer = optim.Adam([
+        {'params': feature_extractor.parameters()},
+        {'params': class_classifier.parameters()},
+        {'params': domain_classifier.parameters()}
+        ], lr=lr, betas=(opt.b1, opt.b2), weight_decay=weight_decay
+    )
     
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[], gamma=0.1)
     
@@ -268,11 +320,6 @@ def dann_performance_test(source, target, epochs, threshold, lr, weight_decay):
         domain_classifier.train()
 
         for index, (source_batch, target_batch) in enumerate(zip(source_train_loader, target_train_loader), 1):
-            #-------------------------------
-            # Prepare the images and labels
-            #   img, label
-            #   domain_label
-            #-------------------------------
             source_img, source_label, _ = source_batch
             target_img, target_label, _ = target_batch
             batch_size_src, batch_size_tgt = source_img.shape[0], target_img.shape[0]
@@ -285,19 +332,10 @@ def dann_performance_test(source, target, epochs, threshold, lr, weight_decay):
             source_domain_labels = torch.zeros(batch_size_src).type(torch.long).to(DEVICE)
             target_domain_labels = torch.ones(batch_size_tgt).type(torch.long).to(DEVICE)
             
-            #-------------------------------------------
-            # Setup optimizer
-            # Prepare the learning rate and the constant
-            #-------------------------------------------
-            # p = float(index + (epoch - 1) * len(source_loader)) / (opt.epochs * len(source_loader))
             constant = opt.alpha
 
-            # optim = utils.set_optimizer_lr(optim, p)
             optimizer.zero_grad()
 
-            #-------------------------------
-            # Get features, class pred, domain pred:
-            #-------------------------------
             source_feature = feature_extractor(source_img).view(-1, 128 * 7 * 7)
             target_feature = feature_extractor(target_img).view(-1, 128 * 7 * 7)
             
@@ -347,10 +385,6 @@ def main():
     os.makedirs("./models/dann", exist_ok=True)
     os.makedirs("./models/dann/{}".format(opt.tag), exist_ok=True)
     
-    #-------------------------------------
-    # Train the model with DANN strategic
-    #   SOURCE -> TARGET
-    #-------------------------------------
     DOMAINS = [("usps", "mnistm"), ("mnistm", "svhn"), ("svhn", 'usps')]
     
     for SOURCE, TARGET in DOMAINS:
@@ -383,7 +417,4 @@ if __name__ == "__main__":
     parser.add_argument("--log_interval", type=int, default=10, help="interval between everytime logging the training status.")
     
     opt = parser.parse_args()
-    print(opt)
-    
-    # dann_performance_test("usps", "mnistm", 20, 0, 1e-4, 1e-4)
     main()

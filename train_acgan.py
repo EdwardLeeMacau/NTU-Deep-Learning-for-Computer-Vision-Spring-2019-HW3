@@ -1,6 +1,6 @@
 """
   FileName     [ acgan.py ]
-  PackageName  [ HW3 ]
+  PackageName  [ DLCV Spring 2019 - ACGAN ]
   Synopsis     [ ACGAN Model, train method and generate method. ]
 
   Dataset: CelebA
@@ -8,7 +8,6 @@
 """
 
 import argparse
-import math
 import os
 
 import numpy as np
@@ -54,6 +53,15 @@ def weights_init_normal(m):
 
 class Generator(nn.Module):
     def __init__(self):
+        # --------------------------------------------- #
+        #  out.h = (in.h - 1) * stride + out_padding    #
+        #       - 2 * in_padding + kernel_size          #
+        #                                               #
+        #  Notes:                                       #
+        #    kernel_size = 5                            #
+        #    out_padding = 3                            #
+        #    in_padding  = 1                            #
+        # --------------------------------------------- #
         super(Generator, self).__init__()
 
         self.linear = nn.Linear(102, 512 * 4 * 4)
@@ -61,15 +69,6 @@ class Generator(nn.Module):
         self.relu0  = nn.ReLU(inplace=True)
 
         self.conv_blocks = nn.Sequential(
-            # --------------------------------------------
-            #  out.h = (in.h - 1) * stride + out_padding - 2 * in_padding + kernel_size
-            # 
-            #  Notes:
-            #    kernel_size = 5
-            #    out_padding = 3
-            #    in_padding  = 1
-            # -------------------------------------------------------------------------
-
             nn.ConvTranspose2d(512, 256, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
@@ -90,20 +89,13 @@ class Generator(nn.Module):
         )
 
     def forward(self, z, labels):
-        # ---------------------------------------------
-        #  gen: 
-        #    [z labels]: z(100), label(2) to show that 
-        #    [1 0] = - (negative feature)
-        #    [0 1] = + (positive feature)
-        #    Ref: hw3.dataset.py
-        # ---------------------------------------------
         gen = torch.cat((z, labels), dim=1)
-        # print("Generator_in.shape: \t\t{}".format(gen.shape))
         gen = self.linear(gen).view(-1, 512, 4, 4)
         gen = self.bn0(gen)
         gen = self.relu0(gen)
+
         img = self.conv_blocks(gen)
-        # print("Generator_out.shape: \t\t{}".format(img.shape))
+
         return img
 
 class Discriminator(nn.Module):
@@ -201,18 +193,16 @@ def train(epoch):
         labels = labels.type(FloatTensor)
         # print("Label.shape: \t{}".format(labels.shape))
 
-        # -----------------
-        #  Train Generator
-        # -----------------
+        # --------------------- #
+        #  Train Generator      #
+        # --------------------- #
         optimizer_G.zero_grad()
 
         # Sample noise and labels as generator input
         z = FloatTensor(np.random.normal(0, 1, size=(batch_size, opt.latent_dim)))
         gen_labels = FloatTensor(np.random.randint(0, 2, size=(batch_size, 1)))
         gen_labels = torch.cat((1 - gen_labels, gen_labels), dim=1)
-        # print("gen_Label: \t\t{}".format(gen_labels))
-        # print("gen_Label.shape: \t{}".format(gen_labels.shape))
-
+        
         # Generate a batch of images
         gen_imgs = generator(z, gen_labels)
 
@@ -234,9 +224,9 @@ def train(epoch):
 
         generator_loss.append(g_loss.item())
 
-        # ---------------------
-        #  Train Discriminator
-        # ---------------------
+        # --------------------- #
+        #  Train Discriminator  #
+        # --------------------- #
         optimizer_D.zero_grad()
 
         # Loss for real images
@@ -284,9 +274,6 @@ def train(epoch):
         discriminator_loss.append(d_loss.item())
         discriminator_acc.append((d_acc_real + d_acc_fake) / 2)
 
-        # --------------------------
-        #  Logging, sampling, saving
-        # --------------------------
         batches_done = (epoch - 1) * len(dataloader) + i
         
         # 1. Logging
@@ -305,7 +292,6 @@ def train(epoch):
 
             savepath = "./models/acgan/{}-{}".format(opt.tag, feature)
             utils.saveModel(os.path.join(savepath, "generator_{}.pth".format(number)), generator)
-            # utils.saveModel(os.path.join(savepath, "discriminator_{}.pth".format(number)), discriminator)
             
             print("Model saved to: {}, iteration: {}".format(savepath, number))
 
@@ -346,10 +332,8 @@ def main():
             x = np.arange(start=((epoch - 5) * len(dataloader) + 1), stop=(epoch * len(dataloader) + 1))
         else:
             x = np.arange(start=1, stop=(epoch * len(dataloader) + 1))
-        
-        # --------------------------
-        #  Drawing the loss of G and D
-        # --------------------------
+
+        # TODO: Create a better loss logging function
         plt.clf()
         plt.figure(figsize=(12.8, 7.2))
         plt.plot(x, g_loss_iteration, label='G loss', color='r', linewidth=0.25)

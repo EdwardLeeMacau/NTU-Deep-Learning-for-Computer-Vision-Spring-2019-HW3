@@ -1,23 +1,16 @@
 """
   FileName     [ adda.py ]
-  PackageName  [ HW3 ]
+  PackageName  [ DLCV Spring 2019 - ADDA ]
   Synopsis     [ ADDA Models ]
 
-  Dataset:
-    USPS: 28 * 28 * 1 -> 28 * 28 * 3
-    SVHN: 28 * 28 * 3
-    MNISTM: 28 * 28 * 3
-
-  DANN Models:
-    Source CNN
-    Target CNN
-    Discriminator
-    Class predictor
-    Domain predictor
+  Reference
+  1. https://arxiv.org/abs/1702.05464
 """
 
 import torch.nn.functional as F
 from torch import nn
+
+__all__ = ['Feature', 'Classifier', 'Discriminator']
 
 class Feature(nn.Module):
     def __init__(self):
@@ -32,7 +25,6 @@ class Feature(nn.Module):
             nn.ReLU(inplace=True),
             nn.Dropout2d(0.5),
 
-
             nn.Conv2d(64, 128, kernel_size=5, stride=1, padding=2),
             nn.MaxPool2d(kernel_size=2, stride=2),
             nn.BatchNorm2d(128),
@@ -42,7 +34,6 @@ class Feature(nn.Module):
 
     def forward(self, img):
         feature = self.encoder(img)
-        # print("Feature.shape: {}".format(feature.shape))
 
         return feature
 
@@ -50,10 +41,6 @@ class Classifier(nn.Module):
     def __init__(self, input_dims, hidden_dims, output_dims):
         super(Classifier, self).__init__()
         
-        #-------------------------------------
-        # Train the model with DANN strategic
-        #   SOURCE -> TARGET
-        #-------------------------------------
         self.classify = nn.Sequential(
             nn.Linear(input_dims, hidden_dims),
             nn.ReLU(inplace=True),
@@ -64,14 +51,10 @@ class Classifier(nn.Module):
             nn.Dropout(0.5),
 
             nn.Linear(hidden_dims, output_dims),
-
-            # Using CrossEntropy to train this layer.
-            # nn.LogSoftmax()
         )
 
     def forward(self, feature):
         x = self.classify(feature)
-        # print("Output.shape: {}".format(x.shape))
 
         return x
 
@@ -80,11 +63,6 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
 
         self.restored = False
-
-        #-------------------------------------
-        # Train the model with DANN strategic
-        #   SOURCE -> TARGET
-        #-------------------------------------
         self.classify = nn.Sequential(
             nn.Conv2d(128, 64, kernel_size=3, stride=3, padding=1),
             # nn.Linear(input_dims, hidden_dims),
@@ -102,6 +80,6 @@ class Discriminator(nn.Module):
         )
 
     def forward(self, feature):
-        """Forward the discriminator."""
         out = self.classify(feature)
+
         return out

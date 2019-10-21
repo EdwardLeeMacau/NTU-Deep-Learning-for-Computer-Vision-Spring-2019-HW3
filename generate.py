@@ -1,6 +1,6 @@
 """
   FileName     [ generate.py ]
-  PackageName  [ HW3 ]
+  PackageName  [ DLCV Spring 2019 - GAN ]
   Synopsis     [ Generate images from GAN / ACGAN. ]
 """
 
@@ -11,41 +11,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torchvision
-
-import utils
 from torchvision.utils import save_image
 
+import utils
+from GAN.model import DCGAN_Generator
+
 DEVICE = utils.selectDevice()
-
-class DCGAN_Generator(nn.Module):
-    def __init__(self):
-        super(DCGAN_Generator, self).__init__()
-
-        self.model = nn.Sequential(
-            nn.ConvTranspose2d(100, 512, 4, 1, 0, bias=False),
-            nn.BatchNorm2d(512),
-            nn.ReLU(inplace=True),
-
-            nn.ConvTranspose2d(512, 256, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(256),
-            nn.ReLU(inplace=True),
-            
-            nn.ConvTranspose2d(256, 128, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
-            
-            nn.ConvTranspose2d(128, 64, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True),
-            
-            nn.ConvTranspose2d(64, 3, 4, 2, 1, bias=False),
-            nn.Tanh()
-        )
-
-    def forward(self, z):
-        img = self.model(z)
-        img = img.view(img.shape[0], 3, 64, 64)
-        return img
 
 class ACGAN_Generator(nn.Module):
     def __init__(self):
@@ -73,38 +44,27 @@ class ACGAN_Generator(nn.Module):
         )
     
     def forward(self, z, labels):
-        # ---------------------------------------------
-        #  gen: 
-        #    [z labels]: z(100), label(2) to show that 
-        #    [1 0] = - (negative feature)
-        #    [0 1] = + (positive feature)
-        #    Ref: hw3.dataset.py
-        # ---------------------------------------------
         gen = torch.cat((z, labels), dim=1)
-        # print("gen.shape: {}".format(gen.shape))
-        # print("gen.dtype: {}".format(gen.dtype))
         gen = self.linear(gen).view(-1, 512, 4, 4)
         gen = self.bn0(gen)
         gen = self.relu0(gen)
         img = self.conv_blocks(gen)
+
         return img
 
-def main(command):
-    os.system("clear")
+def main(command, opt):
+    img_shape = (3, 64, 64)
 
     acgan = command == 'acgan'
     dcgan = command == 'dcgan'
 
-    if acgan:
-        generator = utils.loadModel(opt.model, ACGAN_Generator())
-    
-    if dcgan:
-        generator = utils.loadModel(opt.model, DCGAN_Generator())
-
-    if acgan:
+    if opt.fix_randomseed:
         np.random.seed(47)
         torch.manual_seed(47)
         torch.cuda.manual_seed_all(47)
+
+    if acgan:
+        generator = utils.loadModel(opt.model, ACGAN_Generator())
 
         feature = utils.faceFeatures[7]
         print("Using Feature: {}".format(feature))
@@ -115,12 +75,11 @@ def main(command):
         
         gen_imgs = generator(z, labels)
         save_image(gen_imgs.data, os.path.join(opt.output, "fig2_2.jpg"), nrow=10, normalize=True)
-    
-    if dcgan:
-        np.random.seed(8)
-        torch.manual_seed(8)
-        torch.cuda.manual_seed_all(8)
 
+
+    if dcgan:
+        generator = utils.loadModel(opt.model, DCGAN_Generator(img_shape))
+    
         z = torch.from_numpy(np.random.normal(0, 1, size=(32, opt.latent_dim, 1, 1))).type(torch.float)
         gen_imgs = generator(z)
 
@@ -143,4 +102,4 @@ if __name__ == "__main__":
     
     opt = parser.parse_args()
 
-    main(opt.command)
+    main(opt.command, opt)
