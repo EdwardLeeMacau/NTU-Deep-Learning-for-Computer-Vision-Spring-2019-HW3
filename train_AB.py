@@ -1,6 +1,6 @@
 """
   FileName     [ train_AB.py ]
-  PackageName  [ HW3 ]
+  PackageName  [ DLCVSpring2019 - GAN ]
   Synopsis     [ DANN training: Without DANN strategic ]
 
   Dataset:
@@ -10,11 +10,9 @@
 """
 
 import argparse
-import logging
-import logging.config
+import datetime
 import os
 import random
-import datetime
 
 import numpy as np
 import torch.backends.cudnn as cudnn

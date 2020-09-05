@@ -1,12 +1,10 @@
 """
   FileName     [ predict.py ]
-  PackageName  [ HW3 ]
+  PackageName  [ DLCV Spring 2019 - ADDA ]
   Synopsis     [ Domain Adaptive prediction from DANN(Domain Adaptive Neural Network). ]
 """
 
 import argparse
-import logging
-import logging.config
 import os
 import random
 import time

@@ -1,6 +1,6 @@
 """
   FileName     [ dataset.py ]
-  PackageName  [ DLCV Spring 2019 - GAN ]
+  PackageName  [ DLCV Spring 2019 - GAN / DANN ]
   Synopsis     [ Dataset of the HW3: CelebA, USPS, SVHN, MNISTM. ]
 """
 
