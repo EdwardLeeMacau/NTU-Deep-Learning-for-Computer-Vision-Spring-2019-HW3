@@ -2,55 +2,79 @@
 
 ## Demonstration
 
-<table>
-<caption><h3>GAN</h3></caption>
-<tr>
-</tr>
-</table>
+### GAN
 
-<table>
-<caption><h3>ACGAN</h3></caption>
-<tr>
-</tr>
-</table>
+### ACGAN
 
 ## Performance
 
 ### Target: mnistm
-Namespace(alpha=0.25, batch_size=64, dataset=None, model='models/dann/20190504_025_batch16/DANN_usps_mnistm_30.pth', output='./output/dann/mnistm_pred.csv', target='mnistm', threads=8)
-Model loaded from models/dann/20190504_025_batch16/DANN_usps_mnistm_30.pth
+
+Train parameters
+
+|   Parameters   | Value  |
+| :------------: | :----: |
+|    $\alpha$    |  0.25  |
+|   batchSize    |   64   |
+|     epoch      |   30   |
+| Source Dataset |  usps  |
+| Target Dataset | mnistm |
+
+Result 
+
+|     name     | class accurate | class loss | domain accurate | domain loss |
+| :----------: | :------------: | :--------: | :-------------: | :---------: |
+|  usps_train  |                |            |                 |             |
+|  usps_test   |     96.66%     |   0.1416   |     79.12%      |   0.5516    |
+| mnistm_train |     35.24%     |   2.8489   |     39.43%      |   0.8002    |
+| mnistm_test  |     35.80%     |   2.8391   |     39.42%      |   0.8069    |
+
 Source_test:    usps, 2007
 Target_test:    mnistm, 10000
-usps_Test:
-[class_acc: 96.66% ] [class_loss: 0.1416] [domain_acc: 79.12 %] [domain_loss: 0.5516]
-mnistm_Train:
-[class_acc: 35.24% ] [class_loss: 2.8489] [domain_acc: 39.43 %] [domain_loss: 0.8002]
-mnistm_Test:
-[class_acc: 35.80% ] [class_loss: 2.8391] [domain_acc: 39.42 %] [domain_loss: 0.8069]
 
 ### Target: svhn
-Namespace(alpha=0.25, batch_size=64, dataset=None, model='models/dann/20190504_025_batch16/DANN_mnistm_svhn_15.pth', output='./output/dann/svhn_pred.csv', target='svhn', threads=8)
-Model loaded from models/dann/20190504_025_batch16/DANN_mnistm_svhn_15.pth
+
+Train parameters
+
+|   Parameters   | Value  |
+| :------------: | :----: |
+|    $\alpha$    |  0.25  |
+|   batchSize    |   64   |
+|     epoch      |   15   |
+| Source Dataset | mnistm |
+| Target Dataset |  svhn  |
+
 Source_test:    mnistm, 10000
 Target_test:    svhn, 26032
-mnistm_Test:
-[class_acc: 97.74% ] [class_loss: 0.0673] [domain_acc: 99.75 %] [domain_loss: 0.0237]
-svhn_Train:
-[class_acc: 44.31% ] [class_loss: 1.7580] [domain_acc: 0.30 %] [domain_loss: 3.6742]
-svhn_Test:
-[class_acc: 49.95% ] [class_loss: 1.5604] [domain_acc: 0.13 %] [domain_loss: 3.5836]
+
+|     name     | class accurate | class loss | domain accurate | domain loss |
+| :----------: | :------------: | :--------: | :-------------: | :---------: |
+| mnistm_train |                |            |                 |             |
+| mnistm_test  |     97.74%     |   0.0673   |     99.75%      |   0.0237    |
+|  svhn_train  |     44.31%     |   1.7580   |      0.30%      |   3.6742    |
+|  svhn_test   |     49.95%     |   1.5604   |      0.13%      |   3.5836    |
 
 ### Target: usps
-Namespace(alpha=0.25, batch_size=64, dataset=None, model='models/dann/20190504_025_batch16/DANN_svhn_usps_18.pth', output='./output/dann/usps_pred.csv', target='usps', threads=8)
-Model loaded from models/dann/20190504_025_batch16/DANN_svhn_usps_18.pth
+
+Train parameters
+
+|   Parameters   | Value |
+| :------------: | :---: |
+|    $\alpha$    | 0.25  |
+|   batchSize    |  64   |
+|     epoch      |  18   |
+| Source Dataset | svhn  |
+| Target Dataset | usps  |
+
 Source_test:    svhn, 26032
 Target_test:    usps, 2007
-svhn_Test:
-[class_acc: 82.77% ] [class_loss: 0.5907] [domain_acc: 1.04 %] [domain_loss: 0.8784]
-usps_Train:
-[class_acc: 70.74% ] [class_loss: 0.9812] [domain_acc: 74.49 %] [domain_loss: 0.6583]
-usps_Test:
-[class_acc: 67.16% ] [class_loss: 1.1177] [domain_acc: 74.49 %] [domain_loss: 0.6577]
+
+|    name    | class accurate | class loss | domain accurate | domain loss |
+| :--------: | :------------: | :--------: | :-------------: | :---------: |
+| svhn_train |                |            |                 |             |
+| svhn_test  |     82.77%     |   0.5907   |      1.04%      |   0.8784    |
+| usps_train |     70.74%     |   0.9812   |     74.49%      |   0.6583    |
+| usps_test  |     67.16%     |   1.1177   |     74.49%      |   0.6577    |
 
 ## How to use
 
